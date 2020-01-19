@@ -1,0 +1,8 @@
+{ "skills": [
+{"name": "force",
+"min":0,
+"max":100},
+{ "name": "knowledge",
+"min":0,
+"max":100}
+]}
