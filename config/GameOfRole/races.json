@@ -1,0 +1,10 @@
+{ "races": [
+{ "name": "orc",
+"Affinity":[
+{"name":"force", "usual":50,"variance":2}
+]},
+{ "name": "elf",
+"Affinity":[
+{"name":"knowledge", "usual":60,"variance":1}
+]},
+]}
