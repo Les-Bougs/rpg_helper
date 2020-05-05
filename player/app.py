@@ -3,8 +3,9 @@ import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_daq as daq
 import dash_html_components as html
+import dash_auth
 
-from dash.dependencies import Input, Output, State
+from dash.dependencies import Input, Output, State, MATCH
 
 navbar = dbc.NavbarSimple(
     children=[
@@ -21,7 +22,7 @@ navbar = dbc.NavbarSimple(
             ],
         ),
     ],
-    brand="Demo",
+    brand="Les Bougs - le RPG",
     brand_href="#",
     sticky="top",
 )
@@ -42,11 +43,19 @@ def skill_bar(skill, value):
                 [
                     dbc.Col(
                         html.Div(dbc.Progress(f"{value}", value=value,
-                        striped=False, style={"height": "30px"}))
+                        striped=False, style={"height": "30px"},
+                        id={'type':'d-bar', 'index':f"{skill}"})
+                        )
                     ),
                     dbc.Col(html.Div(id=f'{skill}-score')),
-                    dbc.Button(f"{skill} +", id=f"inc-{skill}",className="d-button"),
-                    dbc.Button(f"{skill} -", id=f"dec-{skill}",className="d-button")
+                    dbc.Button(
+                        f"{skill} +", id={'type':'d-button-inc', 'index':f"{skill}"},
+                        className="d-button"
+                    ),
+                    dbc.Button(
+                        f"{skill} -", id={'type':'d-button-dec', 'index':f"{skill}"},
+                        className="d-button"
+                    ),
                 ],
                 align="center"
             )            
@@ -60,51 +69,54 @@ skilldash = create_skill_dash(skillset)
 
 body = dbc.Container(
     [
-        dbc.Row(
-            [
-                dbc.Col(html.Div(dbc.Progress(value=50, striped=True, id='prog'))),
-                dbc.Button(f"+", id=f"inc-prog",className="d-button"),
-                dbc.Button(f"-", id=f"dec-prog",className="d-button"),
-            ]
-        ),        
-        dbc.Row(html.Div(id=f'disp-div')),
         skilldash
     ],
-    className="mt-4",
+    className="skilldash_class",
 )
 
-
-
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+
+# # PASSWORD SECURE
+# VALID_USERNAME_PASSWORD_PAIRS = []
+# with open('password_pairs.txt') as f:
+#     content = f.readlines()
+#     for pair in content:
+#         pair = pair.replace('\n','').split(', ')
+#         VALID_USERNAME_PASSWORD_PAIRS.append(pair)
+
+# auth = dash_auth.BasicAuth(
+#     app,
+#     VALID_USERNAME_PASSWORD_PAIRS
+# )
 
 app.layout = html.Div([navbar, body])
 
 # WRITE BAR VALUE
 @app.callback(
-    Output(component_id='prog', component_property='children'),
-    [Input(component_id='prog', component_property='value')]
+    Output({'type': 'd-bar', 'index': MATCH}, 'children'),
+    [Input({'type': 'd-bar', 'index': MATCH}, 'value')]
 )
-def update_output_div(input_value):
+def update_bar_display(input_value):
     return input_value
 
-
-n_inc_prev, n_dec_prev = None, None
 # INCREASE/DECREASE BAR
+n_inc_prev, n_dec_prev = None, None
 @app.callback(
-    Output("prog", "value"),
-    [Input("inc-prog", "n_clicks"),Input("dec-prog", "n_clicks")],
-    [State("prog", "value")],
+    Output({'type': 'd-bar', 'index': MATCH}, 'value'),
+    [Input({'type': 'd-button-inc', 'index': MATCH}, 'n_clicks'),
+    Input({'type': 'd-button-dec', 'index': MATCH}, 'n_clicks')],
+    [State({'type': 'd-bar', 'index': MATCH}, 'value')],
 )
-def inc_bar(n_inc, n_dec, value):
+def update_bar_value(n_inc, n_dec, value):
     global n_inc_prev, n_dec_prev
     if not n_inc and not n_dec:
         return value
     if n_inc != n_inc_prev and value <100:
         n_inc_prev = n_inc      
-        return value + 10
+        return min(value + 10, 100)
     elif n_dec != n_dec_prev and value >0:
         n_dec_prev = n_dec     
-        return value - 10
+        return max(value - 10, 0)
     return value
 
 if __name__ == "__main__":
