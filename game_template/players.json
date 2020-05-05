@@ -1,0 +1,34 @@
+[
+    {
+	"pseudo" : "Nini",
+	"password" : "1234",
+	"race" : "orc",
+	"class" : "hunter",
+	"ressource" : {
+	    "hp" : 100,
+	    "mp" : 100,
+	    "gold" : 200
+	},
+	"skills" : {},
+	"inventory" : [],
+	
+	"test" : "none",
+	"result" : "none"
+    },
+    {
+	"pseudo" : "Cola",
+	"password" : "1234",
+	"race" : "elf",
+	"class" : "witch",
+	"ressource" : {
+	    "hp" : 100,
+	    "mp" : 1000,
+	    "gold" : 100
+	},
+	"skills" : {},
+	"inventory" : [],
+	"test" : "none",
+	"result" : "none"
+    }
+]
+

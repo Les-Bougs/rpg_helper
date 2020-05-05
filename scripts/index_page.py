@@ -9,9 +9,12 @@ from dash.dependencies import Input, Output, State
 import flask
 import json
 
-from app import app
 import player
 import pandas as pd
+
+import glob, os
+from app import app
+
 
 navbar = dbc.NavbarSimple(
     children=[
@@ -33,6 +36,8 @@ navbar = dbc.NavbarSimple(
     sticky="top",
 )
 
+title = html.H1("Login", id="test",className="display-3")
+
 body = html.Div(
     [
         dbc.Jumbotron(
@@ -41,7 +46,7 @@ body = html.Div(
                     [
                         dbc.Col(
                             [
-                                html.H1("Login", id="test",className="display-3"),
+                                title,
                                 html.P( "Please enter your credentials.",className="lead"),
                             ],width={"size": 3, "offset":1}),
                         dbc.Col(
@@ -82,9 +87,11 @@ index_layout = html.Div([navbar, body])
 
 
 url_bar_and_content_div = html.Div([
-    html.Div(id='content'),
-    html.Div(id='hidden-div'),
-    dcc.Location(id='url'),
+    html.Div(index_layout,id='content' ),
+    html.Div(id='h-div-connect', style={'display': 'none'}),
+    html.Div(id='h-div-new', style={'display': 'none'}),
+    html.Div(id='h-div-data', style={'display': 'none'}),
+    dcc.Location(id='url', refresh=False),
 ])
 
 
@@ -103,29 +110,36 @@ app.layout =  serve_layout
 
 @app.callback(Output('content', 'children'),
               [Input('url', 'pathname'),
-               Input('hidden-div', 'children')])
+               Input('h-div-data', 'children')])
 def display_page(pathname, div):
-    if pathname == '/form':
+    print("hey")
+    if pathname == '/form' and div !=  None and div != "{}":
         print(div)
         data = json.loads(div)
         return player.page(data["pseudo"])
     else:
         return index_layout
 
+
+    
 # Page 1 callbacks
-@app.callback(Output('hidden-div', 'children'),
+@app.callback(Output('h-div-data', 'children'),
               [Input('connect', 'n_clicks')],
               [State('pseudo', 'value'),
                State('password', 'value')])
 def update_output(n_clicks, pseudo, password):
+    print(title.children)
+    title.children = "coucouc"
     if(n_clicks==None):
         raise PreventUpdate
     else:
-        return json.dumps({
-            'pseudo': pseudo,
-            'password': password
-        })
-
+        player_file = open("../game_template/players.json")
+        player_data = json.load(player_file)
+        data={}
+        for p in player_data:
+            if(p["pseudo"] == pseudo and p["password"]== password):
+                data = p
+        return json.dumps(data)
 
 if __name__ == "__main__":
     app.run_server(debug=True, host='0.0.0.0')
