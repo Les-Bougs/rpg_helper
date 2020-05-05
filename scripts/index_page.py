@@ -51,6 +51,7 @@ body = html.Div(
                             ],width={"size": 3, "offset":1}),
                         dbc.Col(
                             [
+                                dbc.Alert("This is a danger alert. Scary!", color="danger"),
                                 dbc.Row(
                                     [
                                         dbc.Col(dbc.Label("Pseudo: ",className="lead"),width={"size": 2}),
@@ -128,8 +129,6 @@ def display_page(pathname, div):
               [State('pseudo', 'value'),
                State('password', 'value')])
 def update_output(n_clicks, pseudo, password):
-    print(title.children)
-    title.children = "coucouc"
     if(n_clicks==None):
         raise PreventUpdate
     else:
