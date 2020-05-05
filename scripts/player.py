@@ -6,7 +6,10 @@ import dash
 from dash.dependencies import Input, Output
 
 
+div_text = []
+
 def page(name):
+    div_text.append(html.P( "kejfzek.",className="lead"))
     navbar = dbc.NavbarSimple(
         children=[
             dbc.NavItem(dbc.NavLink("Link", href="#")),
@@ -36,13 +39,13 @@ def page(name):
                             dbc.Col(
                                 [
                                     html.H1(name, className="display-3"),
-                                    html.P( "kejfzek.",className="lead"),
+                                    div_text[-1],
                                 ],width={"size": 3, "offset":1}),
                             dbc.Col(
                                 [
                                     dbc.Row(
                                         [
-                                            dbc.Button("bt1",className="mr-1"),
+                                            dbc.Button("bt1",id={"type":"d-button", "name":"game-bt1"},className="mr-1"),
                                             dbc.Button("bt2",className="mr-1")
                                         ]
                                     ),
