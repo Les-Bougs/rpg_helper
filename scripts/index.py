@@ -36,7 +36,8 @@ navbar = dbc.NavbarSimple(
     sticky="top",
 )
 
-alert_connection = dbc.Alert("Wrong Pseudo or Password", color="danger",style={'display': 'none'})
+alert_connection_text = html.Div("Wrong Pseudo or Passwoedrd")
+alert_connection = dbc.Alert(alert_connection_text, color="danger",style={'display': 'none'})
 
 body = html.Div(
     [
@@ -65,7 +66,7 @@ body = html.Div(
                                 dbc.Row(
                                     [
                                         dbc.Col(dbc.Label("Options: ",className="lead"),width={"size": 2}),
-                                        dbc.Col( dcc.Checklist(
+                                        dbc.Col( dcc.Checklist(id={"type":"d-input", "name":"connection-option"},
                                             options=[
                                                 {'label': ' Remember me', 'value': 'REM'},
                                                 {'label': ' Game Master', 'value': 'GM'}
@@ -76,7 +77,7 @@ body = html.Div(
                                 dbc.Row(
                                     [
                                         dbc.Button("New Player",id="new_player",className="mr-1"),
-                                        dbc.Button("Connect",id={"type":"d-button", "name":"connection-connect"},href="/form",className="mr-1")
+                                        dbc.Button("Connect",id={"type":"d-button", "name":"connection-connect"},className="mr-1")
                                     ]
                                 ),
                             ],width={"size": 4})
