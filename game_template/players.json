@@ -1,7 +1,14 @@
 [
     {
+	"pseudo" : "Lala",
+	"password" : "1234",
+	"gm" : "yes"
+    },
+    {
 	"pseudo" : "Nini",
 	"password" : "1234",
+	"gm" : "no",
+	"session_num" : 0,
 	"race" : "orc",
 	"class" : "hunter",
 	"ressource" : {
@@ -18,6 +25,8 @@
     {
 	"pseudo" : "Cola",
 	"password" : "1234",
+	"gm" : "no",
+	"session_num" : 0,
 	"race" : "elf",
 	"class" : "witch",
 	"ressource" : {

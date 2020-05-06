@@ -8,6 +8,8 @@ from dash.dependencies import Input, Output
 
 div_text = []
 
+pages = []
+
 def page(name):
     div_text.append(html.P( "kejfzek.",className="lead"))
     navbar = dbc.NavbarSimple(
