@@ -17,6 +17,8 @@ import gamemaster
 from app import app
 from index import index_layout, alert_connection, alert_connection_text
 
+import time
+
 
 
 page_content =  html.Div(index_layout,id='content' )
@@ -65,8 +67,6 @@ def update_output(button_n, input_v ):
         if context == "connection":
 
             ## get the different data of the connection form
-            player_file = open("../game_template/players.json")
-            player_data = json.load(player_file)
             data={}
             pseudo = ctx.states['{"name":"pseudo","type":"d-input"}.value']
             password = ctx.states['{"name":"password","type":"d-input"}.value']
@@ -76,7 +76,7 @@ def update_output(button_n, input_v ):
             if name == "connect":
 
                 ## Search for player in the json data and compare password
-                for p in player_data:
+                for p in game_data:
                     print(p["pseudo"] + ":" + p["password"])
                     if(p["pseudo"] == pseudo and p["password"]== password):
                         data = p
@@ -145,7 +145,23 @@ def update_metrics(data):
     ## if Game Master
     elif(jdata["gm"] == "yes"):
         return gamemaster.page_layout
+
     
+game_file = open("../game_template/players.json")
+game_data = json.load(game_file)
+
+
+def save_game(g):
+    pass
+
+def update_game(p, g):
+    ## add/update player data in game data
+    pass
+
+def get_player_data(g, pseudo):
+    #return the player data
+    pass
 
 if __name__ == "__main__":
     app.run_server(debug=True, host='0.0.0.0')
+
