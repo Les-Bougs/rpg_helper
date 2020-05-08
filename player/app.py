@@ -5,10 +5,29 @@ import dash_daq as daq
 import dash_html_components as html
 import dash_auth
 
-from dash.dependencies import Input, Output, State, MATCH
+from dash.dependencies import Input, Output, State, MATCH, ALL
+
+from dash.exceptions import PreventUpdate
+import json
+import numpy as np
 
 navbar = dbc.NavbarSimple(
     children=[
+        dbc.Col(
+            html.Div(
+                [
+                    # dbc.Row(
+                    #     html.Div(dbc.Progress(f"health", value=30,
+                    #     striped=False, style={"height": "10px", "width":"250px"},
+                    #     id={'type':'d-bar', 'index':f"health-bar"})
+                    #     ),
+                    # ),
+                    dbc.Row(html.Div('Health : 90', id={'type':'out-health', 'index':'health'})),
+                    dbc.Row(html.Div('Gold : 30', id={'type':'out-gold', 'index':'gold'})),
+                ]
+            ),
+        ),
+        
         dbc.NavItem(dbc.NavLink("Link", href="#")),
         dbc.DropdownMenu(
             nav=True,
@@ -47,23 +66,27 @@ def skill_bar(skill, value):
                         id={'type':'d-bar', 'index':f"{skill}"})
                         )
                     ),
-                    dbc.Col(html.Div(id=f'{skill}-score')),
                     dbc.Button(
-                        f"{skill} +", id={'type':'d-button-inc', 'index':f"{skill}"},
+                        f"-", id={'type':'d-button-dec', 'index':f"{skill}"},
                         className="d-button"
                     ),
                     dbc.Button(
-                        f"{skill} -", id={'type':'d-button-dec', 'index':f"{skill}"},
+                        f"+", id={'type':'d-button-inc', 'index':f"{skill}"},
+                        className="d-button"
+                    ),
+                    dbc.Col(html.Div(id={'type':'d-roll-out', 'index':f"{skill}"})),
+                    dbc.Button(
+                        f"{skill} roll", id={'type':'d-button-roll', 'index':f"{skill}"},
                         className="d-button"
                     ),
                 ],
                 align="center"
-            )            
+            )
         ]
     )
 
 
-skillset = {'Strength':30, 'Agility':40, 'Health': 76}
+skillset = {'Strength':80, 'Agility':20,  'Stamina': 80, 'Charisma': 60}
 skilldash = create_skill_dash(skillset)
 
 
@@ -99,8 +122,8 @@ app.layout = html.Div([navbar, body])
 def update_bar_display(input_value):
     return input_value
 
+
 # INCREASE/DECREASE BAR
-n_inc_prev, n_dec_prev = None, None
 @app.callback(
     Output({'type': 'd-bar', 'index': MATCH}, 'value'),
     [Input({'type': 'd-button-inc', 'index': MATCH}, 'n_clicks'),
@@ -108,16 +131,94 @@ n_inc_prev, n_dec_prev = None, None
     [State({'type': 'd-bar', 'index': MATCH}, 'value')],
 )
 def update_bar_value(n_inc, n_dec, value):
-    global n_inc_prev, n_dec_prev
-    if not n_inc and not n_dec:
-        return value
-    if n_inc != n_inc_prev and value <100:
-        n_inc_prev = n_inc      
+    ctx = dash.callback_context
+    if not ctx.triggered or ctx.triggered[0]['value']==None:
+        raise PreventUpdate
+
+    button_type = json.loads(ctx.triggered[0]['prop_id'].split('.')[0])['type']
+    if button_type == 'd-button-inc' and value <100:
         return min(value + 10, 100)
-    elif n_dec != n_dec_prev and value >0:
-        n_dec_prev = n_dec     
+    elif button_type == 'd-button-dec' and value >0:
         return max(value - 10, 0)
     return value
+
+
+# # roll
+# @app.callback(
+#     Output({'type': 'd-roll-out', 'index': ALL}, 'children'),
+#     [Input({'type': 'd-button-roll', 'index': ALL}, 'n_clicks')],
+#     [State({'type': 'd-bar', 'index': ALL}, 'value')]
+# )
+# def erase_roll(n_clicks, value):
+#     print('erase')
+#     ctx = dash.callback_context
+#     inputs = ctx.inputs
+#     # states = ctx.states
+#     inputs_list = [(list(inputs.keys())[j])[10:].split('"')[0] for j in range(len(inputs.keys()))]
+#     dict_in = {key:i for i,key in enumerate(inputs_list)}
+#     if not ctx.triggered or ctx.triggered[0]['value']==None:
+#         raise PreventUpdate
+#     trigger = json.loads(ctx.triggered[0]['prop_id'].split('.')[0])['index']
+#     trigger_id = dict_in[trigger]
+#     value = value[trigger_id]
+#     # print('inputs : ', inputs)
+#     # print('states : ', states)
+#     # print('trigger : ', trigger)
+#     out = [f'a+{n_clicks}', f'b+{n_clicks}', f'c+{n_clicks}']
+#     out[trigger_id] = value
+#     return out
+
+
+@app.callback(
+    Output({'type': 'd-roll-out', 'index': ALL}, 'children'),
+    [Input({'type': 'd-button-roll', 'index': ALL}, 'n_clicks')],
+    [State({'type': 'd-bar', 'index': ALL}, 'value')],
+)
+def roll_skill(n_inc, value):
+    ctx = dash.callback_context
+    inputs = ctx.inputs
+    # states = ctx.states
+    inputs_list = [(list(inputs.keys())[j])[10:].split('"')[0] for j in range(len(inputs.keys()))]
+    dict_in = {key:i for i,key in enumerate(inputs_list)}
+    if not ctx.triggered or ctx.triggered[0]['value']==None:
+        raise PreventUpdate
+
+    trigger = json.loads(ctx.triggered[0]['prop_id'].split('.')[0])['index']
+    trigger_id = dict_in[trigger]
+    value = value[trigger_id]
+
+    bonus = np.random.randint(0, 20) - 10
+    target = value + bonus
+    dice = np.random.randint(0, 100)
+    if target >= dice:
+        result = 'SUCCESS ✅'
+    else:
+        result = 'FAIL ❌'
+    result_out = f'{result} (dice : {dice}, skill : {target} ({value}+{bonus}))'
+    out = ['']*(len(inputs.keys()))
+    out[trigger_id] = result_out
+    return out
+
+
+# @app.callback(
+#     Output({'type': 'd-roll-out', 'index': MATCH}, 'children'),
+#     [Input({'type': 'd-button-roll', 'index': MATCH}, 'n_clicks')],
+#     [State({'type': 'd-bar', 'index': MATCH}, 'value')],
+# )
+# def roll_skill(n_inc, value):
+#     ctx = dash.callback_context
+#     if not ctx.triggered or ctx.triggered[0]['value']==None:
+#         raise PreventUpdate
+
+#     bonus = np.random.randint(0, 20) - 10
+#     target = value + bonus
+#     dice = np.random.randint(0, 100)
+#     if target >= dice:
+#         result = 'SUCCESS ✅'
+#     else:
+#         result = 'FAIL ❌'
+
+#     return f'{result} (dice : {dice}, skill : {target} ({value}+{bonus}))'
 
 if __name__ == "__main__":
     app.run_server()
