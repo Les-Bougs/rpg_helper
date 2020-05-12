@@ -89,6 +89,7 @@ def skill_bar(skill, value):
 skillset = {'Strength':80, 'Agility':20,  'Stamina': 80, 'Charisma': 60}
 skilldash = create_skill_dash(skillset)
 
+dict_input = {key:i for i,key in enumerate(skillset)}
 
 body = dbc.Container(
     [
@@ -177,14 +178,12 @@ def update_bar_value(n_inc, n_dec, value):
 def roll_skill(n_inc, value):
     ctx = dash.callback_context
     inputs = ctx.inputs
-    # states = ctx.states
-    inputs_list = [(list(inputs.keys())[j])[10:].split('"')[0] for j in range(len(inputs.keys()))]
-    dict_in = {key:i for i,key in enumerate(inputs_list)}
+
     if not ctx.triggered or ctx.triggered[0]['value']==None:
         raise PreventUpdate
 
     trigger = json.loads(ctx.triggered[0]['prop_id'].split('.')[0])['index']
-    trigger_id = dict_in[trigger]
+    trigger_id = dict_input[trigger]
     value = value[trigger_id]
 
     bonus = np.random.randint(0, 20) - 10
