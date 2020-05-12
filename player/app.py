@@ -11,35 +11,21 @@ from dash.exceptions import PreventUpdate
 import json
 import numpy as np
 
-navbar = dbc.NavbarSimple(
-    children=[
-        dbc.Col(
+## DEF FUNCTIONS
+def create_ressource_bar(ress_dict):
+    list_ress = []
+    for ress, value in ress_dict.items():
+        list_ress.append(
             html.Div(
-                [
-                    dbc.Row(html.Div('Health : 90', id={'type':'out-health', 'index':'health'})),
-                    dbc.Row(html.Div('Gold : 30', id={'type':'out-gold', 'index':'gold'})),
-                ]
-            ),
-        ),
-        
-        dbc.NavItem(dbc.NavLink("Link", href="#")),
-        dbc.DropdownMenu(
-            nav=True,
-            in_navbar=True,
-            label="Menu",
-            children=[
-                dbc.DropdownMenuItem("Entry 1"),
-                dbc.DropdownMenuItem("Entry 2"),
-                dbc.DropdownMenuItem(divider=True),
-                dbc.DropdownMenuItem("Entry 3"),
-            ],
-        ),
-    ],
-    brand="Les Bougs - le RPG",
-    brand_href="#",
-    sticky="top",
-)
-
+            [
+                dbc.Row(
+                    html.Div(f'{ress} : {value}',
+                    id={'type':f'ress-{ress}', 'index':f'ress-{ress}'})
+                ),
+            ]
+            )
+        )
+    return list_ress
 
 def create_skill_dash(skillset):
     skill_dash = []
@@ -79,16 +65,50 @@ def skill_bar(skill, value):
         ]
     )
 
+# INSTANCE VARIABLES
 game_file = open("../game_template/players.json")
 game_data = json.load(game_file)
 for p in game_data:
     if p['pseudo'] == 'Nini':
         skillset = p['skills']
+        ressource = p['ressource']
 
 # skillset = {'Strength':80, 'Agility':20,  'Stamina': 80, 'Charisma': 60}
 skilldash = create_skill_dash(skillset)
-
+ressource_bar = create_ressource_bar(ressource)
 dict_input = {key:i for i,key in enumerate(skillset)}
+
+## NAVBAR
+navbar = dbc.NavbarSimple(
+    children=[
+        dbc.Col(
+            # html.Div(
+            #     [
+            #         dbc.Row(html.Div('Health : 90', id={'type':'out-health', 'index':'health'})),
+            #         dbc.Row(html.Div('Gold : 30', id={'type':'out-gold', 'index':'gold'})),
+            #     ]
+            # ),
+            ressource_bar
+        ),
+        
+        dbc.NavItem(dbc.NavLink("Link", href="#")),
+        dbc.DropdownMenu(
+            nav=True,
+            in_navbar=True,
+            label="Menu",
+            children=[
+                dbc.DropdownMenuItem("Entry 1"),
+                dbc.DropdownMenuItem("Entry 2"),
+                dbc.DropdownMenuItem(divider=True),
+                dbc.DropdownMenuItem("Entry 3"),
+            ],
+        ),
+    ],
+    brand="Les Bougs - le RPG",
+    brand_href="#",
+    sticky="top",
+)
+
 
 body = dbc.Container(
     [
@@ -114,6 +134,8 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 app.layout = html.Div([navbar, body])
 
+
+## DEF CALLBACKS
 # WRITE BAR VALUE
 @app.callback(
     Output({'type': 'd-bar', 'index': MATCH}, 'children'),
