@@ -9,8 +9,10 @@ from dash.dependencies import Input, Output, State, MATCH, ALL
 import flask
 import json
 import pandas as pd
+import numpy as np
 
 import player
+import player_nico
 import gamemaster
 
 
@@ -109,7 +111,7 @@ def update_output(button_n, input_v ):
                         ## If player
                         else:
                             data["session_num"] = len(player.pages)
-                            player.pages.append(player.page(data["pseudo"]))
+                            player.pages.append(player_nico.page(data["pseudo"]))
                             gamemaster.div_players.append(gamemaster.player_line(data["pseudo"]))
 
             ## If it's a new player attempt
@@ -161,6 +163,75 @@ def update_game(p, g):
 def get_player_data(g, pseudo):
     #return the player data
     pass
+
+########### NICO CALLBACKS (player page) ############
+#TODO: Find better way to get dict_input
+game_file = open("../game_template/players.json")
+game_data = json.load(game_file)
+
+for p in game_data:
+    if p['pseudo'] == 'Nini':
+        skillset = p['skills']
+        ressource = p['ressource']
+
+dict_input = {key:i for i,key in enumerate(skillset)}
+#/TODO
+
+# WRITE BAR VALUE
+@app.callback(
+    Output({'type': 'd-bar', 'index': MATCH}, 'children'),
+    [Input({'type': 'd-bar', 'index': MATCH}, 'value')]
+)
+def update_bar_display(input_value):
+    return input_value
+
+# INCREASE/DECREASE BAR
+@app.callback(
+    Output({'type': 'd-bar', 'index': MATCH}, 'value'),
+    [Input({'type': 'd-button-inc', 'index': MATCH}, 'n_clicks'),
+    Input({'type': 'd-button-dec', 'index': MATCH}, 'n_clicks')],
+    [State({'type': 'd-bar', 'index': MATCH}, 'value')],
+)
+def update_bar_value(n_inc, n_dec, value):
+    ctx = dash.callback_context
+    if not ctx.triggered or ctx.triggered[0]['value']==None:
+        raise PreventUpdate
+
+    button_type = json.loads(ctx.triggered[0]['prop_id'].split('.')[0])['type']
+    if button_type == 'd-button-inc' and value <100:
+        return min(value + 10, 100)
+    elif button_type == 'd-button-dec' and value >0:
+        return max(value - 10, 0)
+    return value
+
+## ROLL
+@app.callback(
+    Output({'type': 'd-roll-out', 'index': ALL}, 'children'),
+    [Input({'type': 'd-button-roll', 'index': ALL}, 'n_clicks')],
+    [State({'type': 'd-bar', 'index': ALL}, 'value')],
+)
+def roll_skill(n_inc, value):
+    ctx = dash.callback_context
+    inputs = ctx.inputs
+    
+    if not ctx.triggered or ctx.triggered[0]['value']==None:
+        raise PreventUpdate
+
+    trigger = json.loads(ctx.triggered[0]['prop_id'].split('.')[0])['index']
+    trigger_id = dict_input[trigger]
+    value = value[trigger_id]
+
+    bonus = np.random.randint(0, 20) - 10
+    target = value + bonus
+    dice = np.random.randint(0, 100)
+    if target >= dice:
+        result = 'SUCCESS ✅'
+    else:
+        result = 'FAIL ❌'
+    result_out = f'{result} (dice : {dice}, skill : {target} ({value}+{bonus}))'
+    out = ['']*(len(inputs.keys()))
+    out[trigger_id] = result_out
+    return out
 
 if __name__ == "__main__":
     app.run_server(debug=True, host='0.0.0.0')
