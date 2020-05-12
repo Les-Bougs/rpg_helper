@@ -73,7 +73,6 @@ for p in game_data:
         skillset = p['skills']
         ressource = p['ressource']
 
-# skillset = {'Strength':80, 'Agility':20,  'Stamina': 80, 'Charisma': 60}
 skilldash = create_skill_dash(skillset)
 ressource_bar = create_ressource_bar(ressource)
 dict_input = {key:i for i,key in enumerate(skillset)}
@@ -82,12 +81,6 @@ dict_input = {key:i for i,key in enumerate(skillset)}
 navbar = dbc.NavbarSimple(
     children=[
         dbc.Col(
-            # html.Div(
-            #     [
-            #         dbc.Row(html.Div('Health : 90', id={'type':'out-health', 'index':'health'})),
-            #         dbc.Row(html.Div('Gold : 30', id={'type':'out-gold', 'index':'gold'})),
-            #     ]
-            # ),
             ressource_bar
         ),
         
@@ -132,10 +125,11 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 #     VALID_USERNAME_PASSWORD_PAIRS
 # )
 
+## LAYOUT CREATION
 app.layout = html.Div([navbar, body])
 
-
 ## DEF CALLBACKS
+
 # WRITE BAR VALUE
 @app.callback(
     Output({'type': 'd-bar', 'index': MATCH}, 'children'),
