@@ -16,7 +16,12 @@
 	    "mp" : 100,
 	    "gold" : 200
 	},
-	"skills" : {},
+	"skills" : {
+		"Strength" : 80,
+		"Agility" : 20,
+		"Stamina" : 80,
+		"Charisma" : 60
+	},
 	"inventory" : [],
 	
 	"test" : "none",

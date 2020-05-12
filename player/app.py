@@ -16,12 +16,6 @@ navbar = dbc.NavbarSimple(
         dbc.Col(
             html.Div(
                 [
-                    # dbc.Row(
-                    #     html.Div(dbc.Progress(f"health", value=30,
-                    #     striped=False, style={"height": "10px", "width":"250px"},
-                    #     id={'type':'d-bar', 'index':f"health-bar"})
-                    #     ),
-                    # ),
                     dbc.Row(html.Div('Health : 90', id={'type':'out-health', 'index':'health'})),
                     dbc.Row(html.Div('Gold : 30', id={'type':'out-gold', 'index':'gold'})),
                 ]
@@ -85,8 +79,13 @@ def skill_bar(skill, value):
         ]
     )
 
+game_file = open("../game_template/players.json")
+game_data = json.load(game_file)
+for p in game_data:
+    if p['pseudo'] == 'Nini':
+        skillset = p['skills']
 
-skillset = {'Strength':80, 'Agility':20,  'Stamina': 80, 'Charisma': 60}
+# skillset = {'Strength':80, 'Agility':20,  'Stamina': 80, 'Charisma': 60}
 skilldash = create_skill_dash(skillset)
 
 dict_input = {key:i for i,key in enumerate(skillset)}
@@ -144,32 +143,7 @@ def update_bar_value(n_inc, n_dec, value):
     return value
 
 
-# # roll
-# @app.callback(
-#     Output({'type': 'd-roll-out', 'index': ALL}, 'children'),
-#     [Input({'type': 'd-button-roll', 'index': ALL}, 'n_clicks')],
-#     [State({'type': 'd-bar', 'index': ALL}, 'value')]
-# )
-# def erase_roll(n_clicks, value):
-#     print('erase')
-#     ctx = dash.callback_context
-#     inputs = ctx.inputs
-#     # states = ctx.states
-#     inputs_list = [(list(inputs.keys())[j])[10:].split('"')[0] for j in range(len(inputs.keys()))]
-#     dict_in = {key:i for i,key in enumerate(inputs_list)}
-#     if not ctx.triggered or ctx.triggered[0]['value']==None:
-#         raise PreventUpdate
-#     trigger = json.loads(ctx.triggered[0]['prop_id'].split('.')[0])['index']
-#     trigger_id = dict_in[trigger]
-#     value = value[trigger_id]
-#     # print('inputs : ', inputs)
-#     # print('states : ', states)
-#     # print('trigger : ', trigger)
-#     out = [f'a+{n_clicks}', f'b+{n_clicks}', f'c+{n_clicks}']
-#     out[trigger_id] = value
-#     return out
-
-
+## ROLL
 @app.callback(
     Output({'type': 'd-roll-out', 'index': ALL}, 'children'),
     [Input({'type': 'd-button-roll', 'index': ALL}, 'n_clicks')],
@@ -198,26 +172,6 @@ def roll_skill(n_inc, value):
     out[trigger_id] = result_out
     return out
 
-
-# @app.callback(
-#     Output({'type': 'd-roll-out', 'index': MATCH}, 'children'),
-#     [Input({'type': 'd-button-roll', 'index': MATCH}, 'n_clicks')],
-#     [State({'type': 'd-bar', 'index': MATCH}, 'value')],
-# )
-# def roll_skill(n_inc, value):
-#     ctx = dash.callback_context
-#     if not ctx.triggered or ctx.triggered[0]['value']==None:
-#         raise PreventUpdate
-
-#     bonus = np.random.randint(0, 20) - 10
-#     target = value + bonus
-#     dice = np.random.randint(0, 100)
-#     if target >= dice:
-#         result = 'SUCCESS ✅'
-#     else:
-#         result = 'FAIL ❌'
-
-#     return f'{result} (dice : {dice}, skill : {target} ({value}+{bonus}))'
 
 if __name__ == "__main__":
     app.run_server()
