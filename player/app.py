@@ -168,6 +168,10 @@ def update_bar_value(n_inc, n_dec, value):
 def roll_skill(n_inc, value):
     ctx = dash.callback_context
     inputs = ctx.inputs
+<<<<<<< HEAD
+=======
+    
+>>>>>>> 9999781ede3026df03e6a038cbc648730653c487
     if not ctx.triggered or ctx.triggered[0]['value']==None:
         raise PreventUpdate
 
