@@ -10,7 +10,7 @@ import flask
 import json
 
 import player
-import pandas as pd
+#import pandas as pd
 
 import glob, os
 from app import app

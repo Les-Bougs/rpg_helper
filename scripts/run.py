@@ -8,8 +8,8 @@ from dash.dependencies import Input, Output, State, MATCH, ALL
 
 import flask
 import json
-import pandas as pd
-import numpy as np
+#import pandas as pd
+#import numpy as np
 
 import player
 import player_nico
@@ -21,22 +21,30 @@ from index import index_layout, alert_connection, alert_connection_text
 
 import time
 
+import numpy as np
+
+#from django_plotly_dash.consumers import send_to_pipe_channel
+
 
 
 page_content =  html.Div(index_layout,id='content' )
+
+inter =  dcc.Interval(
+        id='update-timer',
+        interval=1*1000, # in milliseconds
+        n_intervals=0,
+        disabled=False
+        )
 
 page_layout = html.Div([
     page_content,
     html.Div(id='h-div-data', style={'display': 'none'}),
     dcc.Location(id='url', refresh=False),
-    dcc.Interval(
-        id='update-timer',
-        interval=1*1000, # in milliseconds
-        n_intervals=0,
-        disabled=True
-        ),
+    inter,
     dcc.Store(id='local', storage_type='session'),
 ])
+
+
 
 
 def serve_layout():
@@ -51,13 +59,16 @@ app.layout =  serve_layout
 @app.callback(Output('local', 'data'),
               [Input({'type': 'd-button', 'name': ALL}, 'n_clicks')],
               [State({'type': 'd-input', 'name': ALL}, 'value')])
-def update_output(button_n, input_v ):
+def update_output(button_n, input_v):
     ctx = dash.callback_context
+
 
     ## If no trigering event raise no update
     if not ctx.triggered or ctx.triggered[0]['value']==None:
         raise PreventUpdate
+    
 
+    print(ctx.triggered)
     ## Get the triggenring input
     trigering_id = json.loads(ctx.triggered[0]['prop_id'].split('.')[0])
 
@@ -69,23 +80,26 @@ def update_output(button_n, input_v ):
         if context == "connection":
 
             ## get the different data of the connection form
-            data={}
+            data=""
             pseudo = ctx.states['{"name":"pseudo","type":"d-input"}.value']
             password = ctx.states['{"name":"password","type":"d-input"}.value']
             GM = "GM" in ctx.states['{"name":"connection-option","type":"d-input"}.value']
-            print(pseudo + ":" + password)
-            ## if it's a connection attempt
-            if name == "connect":
 
+            if pseudo == None or password == None:
+                alert_connection_text.children = "Please enter a pseudo and a password"
+                alert_connection.style = None
+                data = None
+
+            ## if it's a connection attempt
+            elif name == "connect":
+                
+                print(pseudo + ":" + password)
                 ## Search for player in the json data and compare password
-                for p in game_data:
-                    print(p["pseudo"] + ":" + p["password"])
-                    if(p["pseudo"] == pseudo and p["password"]== password):
-                        data = p
-                        break
-                print(data)
+                if (pseudo in game_data) and game_data[pseudo]["password"] == password:
+                    data = {"name":pseudo}
+                    p = game_data[pseudo]
                 ## If no player found display a warning message on the index page
-                if data == {}:
+                if data == None:
                     print("1")
                     alert_connection_text.children = "Wrong Pseudo or Password"
                     alert_connection.style = None
@@ -106,25 +120,38 @@ def update_output(button_n, input_v ):
 
                         ## If game master
                         if is_gm:
-                            gamemaster.page_layout.children = gamemaster.page(data["pseudo"])
+                            gamemaster.page_layout.children = gamemaster.page(pseudo)
 
                         ## If player
                         else:
-                            data["session_num"] = len(player.pages)
-                            player.pages.append(player_nico.page(data["pseudo"]))
-                            gamemaster.div_players.append(gamemaster.player_line(data["pseudo"]))
+                            p = player_nico.Player(pseudo, game_data[pseudo])
+                            players_list.append(p)
+                            game_data[data["name"]]["session_num"] = len(player.pages)
+                            gamemaster.div_players.append(gamemaster.player_line(p))
 
             ## If it's a new player attempt
-            if name == "new-player":
+            elif name == "new-player":
                 pass #todo process to create a new player add it to the players.json file + lauch the player page
 
             ## return the player /GM profil if one was found/created
             return json.dumps(data)
 
         ## Stuff during the game context
-        if context == "game":
-            if name == "bt1":
-                player.div_text[-1].children = "hey"
+        if context == "gm":
+            p_num = int(name.split("_")[0])
+            bt = name.split("_")[1]
+            bonus = 0
+            if bt == "easy":
+                bonus = 10
+            elif bt == "medium":
+                bonus = 0
+            else:
+                bonus = -10
+                
+            players_list[p_num].result = bonus
+            players_list[p_num].btn_div.style = {'display': 'none'}
+                
+            raise PreventUpdate
     else:
         raise PreventUpdate
         
@@ -132,25 +159,30 @@ def update_output(button_n, input_v ):
 
     
 @app.callback(Output('content', 'children'),
-               [Input('local', 'data')])
-def update_metrics(data):
+               [Input('local', 'data'),
+               Input('update-timer', 'n_intervals')])
+def update_metrics(data, interval):
+    
     ## if no data previously store send the client on the index page
-    if(data==None or data == "{}" ):
-        return index_layout
+    ctx = dash.callback_context
 
-    ## if previously connected 
-    jdata = json.loads(data)
+    if(not ctx.triggered or data==None or data == "{}"):
+           raise PreventUpdate
 
+    name = json.loads(data)["name"]
     ## if player
-    if(jdata["gm"] == "no" and len(player.pages)>0):
-        return player.pages[jdata["session_num"]]
+    if(game_data[name]["gm"] == "no" and len(players_list)>0):
+        p = players_list[game_data[name]["session_num"]]
+        return p.layout
     ## if Game Master
-    elif(jdata["gm"] == "yes"):
+    elif(game_data[name]["gm"] == "yes"):
         return gamemaster.page_layout
+
 
     
 game_file = open("../game_template/players.json")
 game_data = json.load(game_file)
+players_list = []
 
 
 def save_game(g):
@@ -166,13 +198,9 @@ def get_player_data(g, pseudo):
 
 ########### NICO CALLBACKS (player page) ############
 #TODO: Find better way to get dict_input
-game_file = open("../game_template/players.json")
-game_data = json.load(game_file)
 
-for p in game_data:
-    if p['pseudo'] == 'Nini':
-        skillset = p['skills']
-        ressource = p['ressource']
+skillset = game_data["Nini"]['skills']
+ressource = game_data["Nini"]['ressource']
 
 dict_input = {key:i for i,key in enumerate(skillset)}
 #/TODO
@@ -208,20 +236,44 @@ def update_bar_value(n_inc, n_dec, value):
 @app.callback(
     Output({'type': 'd-roll-out', 'index': ALL}, 'children'),
     [Input({'type': 'd-button-roll', 'index': ALL}, 'n_clicks')],
-    [State({'type': 'd-bar', 'index': ALL}, 'value')],
+    [State({'type': 'd-bar', 'index': ALL}, 'value'),
+     State('local', 'data')],
 )
-def roll_skill(n_inc, value):
+def roll_skill(n_inc, value, data):
     ctx = dash.callback_context
     inputs = ctx.inputs
+
+    
     
     if not ctx.triggered or ctx.triggered[0]['value']==None:
         raise PreventUpdate
+
+    print(ctx.triggered)
 
     trigger = json.loads(ctx.triggered[0]['prop_id'].split('.')[0])['index']
     trigger_id = dict_input[trigger]
     value = value[trigger_id]
 
-    bonus = np.random.randint(0, 20) - 10
+    
+    name = json.loads(data)["name"]
+    jdata = game_data[name]
+    
+    p_num = game_data[name]["session_num"]
+    p = players_list[p_num]
+    players_list[p_num].btn_div.style =  None
+    
+    while(p.result == -1):
+        print("hey")
+        time.sleep(1)
+    bonus = p.result
+    p.result = -1
+
+
+    
+
+    print(jdata["skills"][trigger])
+    print(trigger)
+    
     target = value + bonus
     dice = np.random.randint(0, 100)
     if target >= dice:
@@ -231,6 +283,12 @@ def roll_skill(n_inc, value):
     result_out = f'{result} (dice : {dice}, skill : {target} ({value}+{bonus}))'
     out = ['']*(len(inputs.keys()))
     out[trigger_id] = result_out
+
+    
+    
+    for i in range(len(p.roll_outs)):
+            p.roll_outs[i].children = out[i]
+            
     return out
 
 if __name__ == "__main__":

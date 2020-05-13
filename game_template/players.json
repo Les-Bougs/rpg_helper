@@ -1,11 +1,9 @@
-[
-    {
-	"pseudo" : "Lala",
+{
+    "Lala" : {
 	"password" : "1234",
 	"gm" : "yes"
     },
-    {
-	"pseudo" : "Nini",
+    "Nini" : {
 	"password" : "1234",
 	"gm" : "no",
 	"session_num" : 0,
@@ -17,18 +15,17 @@
 	    "gold" : 200
 	},
 	"skills" : {
-		"Strength" : 80,
-		"Agility" : 20,
-		"Stamina" : 80,
-		"Charisma" : 60
+	    "Strength" : 80,
+	    "Agility" : 20,
+	    "Stamina" : 80,
+	    "Charisma" : 60
 	},
 	"inventory" : [],
 	
 	"test" : "none",
 	"result" : "none"
     },
-    {
-	"pseudo" : "Cola",
+    "Cola" : {
 	"password" : "1234",
 	"gm" : "no",
 	"session_num" : 0,
@@ -44,5 +41,4 @@
 	"test" : "none",
 	"result" : "none"
     }
-]
-
+}

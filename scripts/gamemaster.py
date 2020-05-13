@@ -7,20 +7,19 @@ from dash.dependencies import Input, Output
 
 
 
-def player_line(name):
+def player_line(player):
     return dbc.Jumbotron(
         dbc.Row(
             [
                 dbc.Col(
                     [
-                        html.H1(name, className="display-3"),
+                        html.H1(player.name, className="display-3"),
                     ],width={"size": 3, "offset":1}),
                 dbc.Col(
                     [
                         dbc.Row(
                             [
-                                dbc.Button("bt1",id={"type":"d-button", "name":"gm-bt1"},className="mr-1"),
-                                dbc.Button("bt2",className="mr-1")
+                                player.btn_div
                             ]
                         ),
                     ],width={"size": 4})
