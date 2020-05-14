@@ -8,11 +8,8 @@ from dash.dependencies import Input, Output, State, MATCH, ALL
 
 import flask
 import json
-#import pandas as pd
-#import numpy as np
 
 import player
-import player_nico
 import gamemaster
 
 
@@ -124,7 +121,7 @@ def update_output(button_n, input_v):
 
                         ## If player
                         else:
-                            p = player_nico.Player(pseudo, game_data[pseudo])
+                            p = player.Player(pseudo, game_data[pseudo])
                             players_list.append(p)
                             game_data[data["name"]]["session_num"] = len(player.pages)
                             gamemaster.div_players.append(gamemaster.player_line(p))
