@@ -9,6 +9,8 @@ from dash.dependencies import Input, Output, State, MATCH, ALL
 
 from dash.exceptions import PreventUpdate
 
+
+from global_data import game_data, players_list, session_data
 from app import app
 
 import json
@@ -27,9 +29,9 @@ class Player:
         self.create_layout()
         
         
-        self.btn_easy = dbc.Button("easy",id={"type":"d-button", "name":"gm-"+str(self.num)+"_easy"},className="mr-1")
-        self.btn_medium = dbc.Button("medium",id={"type":"d-button", "name":"gm-"+str(self.num)+"_medium"},className="mr-1")
-        self.btn_hard = dbc.Button("hard",id={"type":"d-button", "name":"gm-"+str(self.num)+"_hard"},className="mr-1")
+        self.btn_easy = dbc.Button("easy",id={"type":"p-button", "name":"gm-"+str(self.num)+"_easy"},className="mr-1")
+        self.btn_medium = dbc.Button("medium",id={"type":"p-button", "name":"gm-"+str(self.num)+"_medium"},className="mr-1")
+        self.btn_hard = dbc.Button("hard",id={"type":"p-button", "name":"gm-"+str(self.num)+"_hard"},className="mr-1")
 
         self.btn_div = html.Div([
             self.btn_easy,
@@ -134,7 +136,6 @@ class Player:
         )
 
 
-players_list = []
 
 # TODO: Find better way to get dict_input
 game_file = open("../game_template/players.json")
@@ -181,9 +182,10 @@ def update_bar_value(n_inc, n_dec, value):
 @app.callback(
     Output({"type": "d-roll-out", "index": ALL}, "children"),
     [Input({"type": "d-button-roll", "index": ALL}, "n_clicks")],
-    [State({"type": "d-bar", "index": ALL}, "value"), State("local", "data")],
+    [State({"type": "d-bar", "index": ALL}, "value"),
+     State("sess_id", "children")],
 )
-def roll_skill(n_inc, value, data):
+def roll_skill(n_inc, value, sess_id):
     ctx = dash.callback_context
     inputs = ctx.inputs
 
@@ -196,7 +198,7 @@ def roll_skill(n_inc, value, data):
     trigger_id = dict_input[trigger]
     value = value[trigger_id]
 
-    name = json.loads(data)["name"]
+    name = session_data[sess_id]["name"]
     jdata = game_data[name]
 
     p_num = game_data[name]["session_num"]
@@ -204,7 +206,7 @@ def roll_skill(n_inc, value, data):
     players_list[p_num].btn_div.style = None
 
     while p.result == -1:
-        print("hey")
+        print(p_num)
         time.sleep(1)
     bonus = p.result
     p.result = -1
@@ -226,3 +228,5 @@ def roll_skill(n_inc, value, data):
         p.roll_outs[i].children = out[i]
 
     return out
+
+
