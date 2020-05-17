@@ -17,18 +17,14 @@ def player_line(player):
         dbc.Row(
             [
                 dbc.Col(
-                    [
-                        html.H1(player.name, className="display-3"),
-                    ],width={"size": 3, "offset":1}),
-                dbc.Col(
-                    [
-                        dbc.Row(
-                            [
-                                player.btn_div
-                            ]
-                        ),
-                    ],width={"size": 4})
-            ]))
+                    [html.H1(player.name, className="display-3"),],
+                    width={"size": 3, "offset": 1},
+                ),
+                dbc.Col([dbc.Row([player.btn_div]),], width={"size": 4}),
+            ]
+        )
+    )
+
 
 def page(name):
     navbar = dbc.NavbarSimple(
@@ -53,12 +49,12 @@ def page(name):
 
     body = html.Div(
         [
-             html.Div(id="gm_tmp", style={"display": "none"}),
-            dbc.Jumbotron(dbc.Row(html.Div(name + " The Game Master" ))),
-            html.Div(div_players)
-        ])
+            html.Div(id="gm_tmp", style={"display": "none"}),
+            dbc.Jumbotron(dbc.Row(html.Div(name + " The Game Master"))),
+            html.Div(div_players),
+        ]
+    )
     return html.Div([navbar, body])
-
 
 
 div_players = []
@@ -68,8 +64,10 @@ page_layout = html.Div(page("none"))
 # callbacks
 @app.callback(
     Output("gm_tmp", "children"),
-    [Input({"type": "p-button", "name": ALL}, "n_clicks"),
-     Input("sess_id", "children")],
+    [
+        Input({"type": "p-button", "name": ALL}, "n_clicks"),
+        Input("sess_id", "children"),
+    ],
 )
 def index_callback(button_n, sess_id):
     ctx = dash.callback_context
@@ -92,8 +90,10 @@ def index_callback(button_n, sess_id):
         bonus = 0
     else:
         bonus = -10
-    
-    players_list[p_num].result = bonus
+
+    players_list[p_num].bonus = bonus
+    players_list[p_num].is_rolling = False
+
     players_list[p_num].btn_div.style = {"display": "none"}
-    
+
     raise PreventUpdate

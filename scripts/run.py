@@ -19,36 +19,34 @@ from global_data import game_data, players_list, session_data
 from app import app
 
 
-from flask import request   
-  
-
-
-
+from flask import request
 
 
 def serve_layout():
-    
-    sess_id = str(uuid.uuid4())
-    sess_ip = request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
+    sess_id = str(uuid.uuid4())  # create an ID
+    sess_ip = request.environ.get(
+        "HTTP_X_REAL_IP", request.remote_addr
+    )  # Get IP of the client
 
-    exist = False
-    print(session_data)
+    # Check if the ip already tried to connect less than 2sec ago
     for sess in session_data:
-        if session_data[sess]["IP_add"] == sess_ip and session_data[sess]["time_stamp"] > datetime.datetime.now() - datetime.timedelta(seconds=2):
-            print("same")
+        if session_data[sess]["IP_add"] == sess_ip and session_data[sess][
+            "time_stamp"
+        ] > datetime.datetime.now() - datetime.timedelta(seconds=2):
             sess_id = sess
             exist = True
             break
 
-
     if exist == False:
-        print("new connexion:")
-        session_data[sess_id] = {"error": False, "name":"", "IP_add":sess_ip , "time_stamp": datetime.datetime.now()}
-        print(session_data[sess_id])
+        session_data[sess_id] = {
+            "error": False,
+            "update": True,
+            "name": "",
+            "IP_add": sess_ip,
+            "time_stamp": datetime.datetime.now(),
+        }
 
-    print(session_data)
-        
-    return  html.Div(
+    return html.Div(
         [
             html.Div(index.index_layout, id="content"),
             html.Div(sess_id, id="sess_id", style={"display": "none"}),
@@ -68,23 +66,19 @@ app.layout = serve_layout
 
 @app.callback(
     Output("content", "children"),
-    [Input("sess_id", "children"),
-     Input("update-timer", "n_intervals")],
+    [Input("sess_id", "children"), Input("update-timer", "n_intervals")],
 )
 def update_content(sess_id, interval):
 
     ## if no data previously store send the client on the index page
     ctx = dash.callback_context
-    
 
-    if(session_data[sess_id]["error"]==True):
-        session_data[sess_id]["error"]=False
+    if session_data[sess_id]["error"] == True:
+        session_data[sess_id]["error"] = False
         return index.index_layout
 
-    
-    if not ctx.triggered or session_data[sess_id]["name"]== "":
+    if not ctx.triggered or session_data[sess_id]["name"] == "":
         raise PreventUpdate
-    
 
     name = session_data[sess_id]["name"]
     ## if player
@@ -95,11 +89,6 @@ def update_content(sess_id, interval):
     ## if Game Master
     elif game_data[name]["gm"] == "yes":
         return gamemaster.page_layout
-
-
-
-
-
 
 
 if __name__ == "__main__":
