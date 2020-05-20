@@ -1,12 +1,14 @@
+import json
+import numpy as np
+import time
+
 import dash
 import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_daq as daq
 import dash_html_components as html
 import dash_auth
-
 from dash.dependencies import Input, Output, State, MATCH, ALL
-
 from dash.exceptions import PreventUpdate
 
 
@@ -20,12 +22,9 @@ from global_data import (
     g_classes,
     g_attributes,
     g_races_affinity,
+    g_verbose,
 )
 from app import app
-
-import json
-import numpy as np
-import time
 
 
 class Player:
@@ -33,15 +32,16 @@ class Player:
         self.name = name
         self.p_data = data
         self.num = data["session_num"]
-
         self.create_layout()
         self.create_gm_interface()
 
     def create_gm_interface(self):
         self.is_rolling = False
         self.result = -1
+        self.attribute_tested = html.H1("hoy")
         self.btn_div = html.Div(
             [
+                self.attribute_tested,
                 dbc.Button(
                     "easy",
                     id={
@@ -75,14 +75,12 @@ class Player:
 
     def create_layout(self):
         self.roll_outs = {}
-
+        # player Creation div
         self.creation_div = self.create_creation_div()
-
         ## NAVBAR
         navbar = self.create_navbar()
         self.main_div = html.Div(self.creation_div)
         body = dbc.Container([self.main_div], className="skilldash_class")
-
         self.layout = html.Div([navbar, body])
 
     def create_navbar(self):
@@ -282,26 +280,31 @@ def roll_skill(n_inc, sess_id):
     ctx = dash.callback_context
     if not ctx.triggered or ctx.triggered[0]["value"] == None:
         raise PreventUpdate
-
-    print(ctx.triggered)
-
-    print(ctx.outputs_list)
-
     trigger_obj = json.loads(ctx.triggered[0]["prop_id"].split(".")[0])
     attr = trigger_obj["name"]
     p_num = int(trigger_obj["player"])
-
     p = g_players_list[p_num]
+
+    p.attribute_tested.children = attr
     p.btn_div.style = None
+    if g_verbose:
+        print(
+            "["
+            + sess_id[:8]
+            + "-"
+            + g_sessions[sess_id]["name"]
+            + "] Rolling ("
+            + attr
+            + ")"
+        )
+
     # tell the GM session to update their layout
     for gm_id in g_gm_list:
         g_sessions[gm_id]["update"] = True
-
     p.is_rolling = True
     while p.is_rolling == True:
         time.sleep(1)
     bonus = p.bonus
-
     value = p.p_data["attribute"][attr]
     target = value + bonus
     dice = np.random.randint(0, 100)
@@ -309,11 +312,19 @@ def roll_skill(n_inc, sess_id):
         result = "SUCCESS ✅"
     else:
         result = "FAIL ❌"
+    if g_verbose:
+        print(
+            "["
+            + sess_id[:8]
+            + "-"
+            + g_sessions[sess_id]["name"]
+            + "] Rolled ("
+            + result
+            + ")"
+        )
     result_out = f"{result} (dice : {dice}, skill : {target} ({value}+{bonus}))"
-
     for a in p.roll_outs:
         p.roll_outs[a].children = result_out if a == attr else ""
-
     g_sessions[sess_id]["update"] = True
     return [""] * len(ctx.outputs_list)
 
@@ -330,25 +341,15 @@ def creation_callback(n_buttons, v_states, sess_id):
     ctx = dash.callback_context
     if not ctx.triggered or ctx.triggered[0]["value"] == None:
         raise PreventUpdate
-
-    print(ctx.triggered)
     trigger = json.loads(ctx.triggered[0]["prop_id"].split(".")[0])
     p_num = int(trigger["player"])
     p = g_players_list[p_num]
-
-    print("\n")
     for state in ctx.states_list[0]:
         p.p_data[state["id"]["name"]] = state["value"]
-
     for attribute in p.p_data["attribute"]:
         p.p_data["attribute"][attribute] = g_races_affinity[p.p_data["race"]][
             attribute
         ][0]
-
-    print(p.p_data)
-
     p.main_div.children = p.create_skill_dash()
-
     g_sessions[sess_id]["update"] = True
-
     return [""] * len(ctx.outputs_list)

@@ -15,7 +15,7 @@ import index
 import player
 import gamemaster
 
-from global_data import g_players_list, g_sessions
+from global_data import g_players_list, g_sessions, g_verbose
 from app import app
 
 
@@ -23,13 +23,12 @@ from flask import request
 
 
 def serve_layout():
-    print("new\n\n")
     sess_id = str(uuid.uuid4())  # create an ID
     sess_ip = request.environ.get(
         "HTTP_X_REAL_IP", request.remote_addr
     )  # Get IP of the client
 
-    # Check if the ip already tried to connect less than 2sec ago
+    # Check if the ip already tried to connect less than 2sec ago or is remembered
     exist = False
     for sess in g_sessions:
         dt = datetime.datetime.now() - datetime.timedelta(seconds=2)
@@ -38,14 +37,16 @@ def serve_layout():
         ):
             sess_id = sess
             exist = True
-            g_sessions[sess_id]["update"] =True
+            g_sessions[sess_id]["update"] = True
             break
 
     if exist == False:
+        if g_verbose:
+            print("[" + sess_id[:8] + "] New session")
         g_sessions[sess_id] = {
             "error": "",
             "update": True,
-            "name": "",
+            "name": "NONE",
             "IP_add": sess_ip,
             "time_stamp": datetime.datetime.now(),
             "context": "index",
@@ -84,9 +85,16 @@ def update_content(sess_id, interval):
     if g_sessions[sess_id]["update"] == True:
         g_sessions[sess_id]["update"] = False
         context = g_sessions[sess_id]["context"]
-        print(sess_id)
-        print(context)
-        print(g_sessions[sess_id])
+        if g_verbose:
+            print(
+                "["
+                + sess_id[:8]
+                + "-"
+                + g_sessions[sess_id]["name"]
+                + "] Update Layout ("
+                + context
+                + ")"
+            )
         if context == "index":  ## Connection context
             if g_sessions[sess_id]["error"] == "":
                 index.alert_connection.style = {"display": "none"}
@@ -99,7 +107,7 @@ def update_content(sess_id, interval):
             if p_num != -1:
                 layout = g_players_list[p_num].layout
         elif context == "gm":  ## if Game Master
-                layout = gamemaster.page_layout
+            layout = gamemaster.page_layout
         return layout
     else:
         raise PreventUpdate
