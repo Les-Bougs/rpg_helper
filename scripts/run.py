@@ -93,7 +93,9 @@ def update_content(sess_id, interval):
                 + g_sessions[sess_id]["name"]
                 + "] Update Layout ("
                 + context
-                + ")"
+                + "["
+                + str(g_sessions[sess_id]["p_num"])
+                + "])"
             )
         if context == "index":  ## Connection context
             if g_sessions[sess_id]["error"] == "":

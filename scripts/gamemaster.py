@@ -24,6 +24,22 @@ div_players = []
 players_dropdown = []
 
 
+def disconnect_player(player):
+    del div_players[player.num]
+    del players_dropdown[player.num]
+    g_players_list.remove(player)
+    g_sessions[player.sess_id]["context"]="index"
+    g_sessions[player.sess_id]["update"]=True
+    g_sessions[player.sess_id]["p_num"]=-1
+    for i in range(len(g_players_list)):
+        p = g_players_list[i]
+        p.num = i
+        g_sessions[p.sess_id]["p_num"]=i
+        p.p_data["session_num"] = i
+        g_sessions[p.sess_id]["update"]=True
+    for gm_id in g_gm_list:
+        g_sessions[gm_id]["update"] = True
+
 def player_line(player):
     return dbc.Jumbotron(
         dbc.Row(
@@ -89,7 +105,7 @@ def page(name):
                     dbc.DropdownMenuItem("Entry 1"),
                     dbc.DropdownMenuItem("Entry 2"),
                     dbc.DropdownMenuItem(divider=True),
-                    dbc.DropdownMenuItem("Entry 3"),
+                    dbc.DropdownMenuItem("Quit"),
                 ],
             ),
         ],
@@ -150,7 +166,7 @@ def save_callback(button_n, sess_id):
         Input("sess_id", "children"),
     ],
 )
-def index_callback(button_n, sess_id):
+def p_btn_callback(button_n, sess_id):
     ctx = dash.callback_context
 
     ## If no trigering event raise no update
@@ -160,7 +176,7 @@ def index_callback(button_n, sess_id):
     trigering_id = json.loads(ctx.triggered[0]["prop_id"].split(".")[0])
     ## Stuff during the game context
     bt = trigering_id["name"]
-    p_num = int(trigering_id["player"])
+    p_num = g_sessions[trigering_id["player"]]["p_num"]
     bonus = 0
     if bt == "easy":
         bonus = 10
@@ -173,10 +189,7 @@ def index_callback(button_n, sess_id):
     g_players_list[p_num].btn_div.style = {"display": "none"}
 
     if g_verbose:
-        print("[" + sess_id[:8] + "-" + g_sessions[sess_id]["name"] + "] GM rolled")
-    # tell the GM session to update their layout
-    for gm_id in g_gm_list:
-        g_sessions[gm_id]["update"] = True
+        print("[" + sess_id[:8] + "-" + g_sessions[sess_id]["name"] + "] GM rolled p["+str(p_num)+"]")
 
     raise PreventUpdate
 

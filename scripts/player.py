@@ -24,6 +24,7 @@ from global_data import (
     g_races_affinity,
     g_verbose,
 )
+import gamemaster
 from app import app
 
 
@@ -48,7 +49,7 @@ class Player:
                     "easy",
                     id={
                         "type": "difficulty-button",
-                        "player": str(self.num),
+                        "player": self.sess_id,
                         "name": "easy",
                     },
                     className="mr-1",
@@ -57,7 +58,7 @@ class Player:
                     "medium",
                     id={
                         "type": "difficulty-button",
-                        "player": str(self.num),
+                        "player": self.sess_id,
                         "name": "medium",
                     },
                     className="mr-1",
@@ -66,7 +67,7 @@ class Player:
                     "hard",
                     id={
                         "type": "difficulty-button",
-                        "player": str(self.num),
+                        "player": self.sess_id,
                         "name": "hard",
                     },
                     className="mr-1",
@@ -89,6 +90,7 @@ class Player:
         ressource_bar = self.create_ressource_bar()
         return dbc.NavbarSimple(
             children=[
+                html.Div(id="player-div-tmp", style={"display": "none"},),
                 html.Div(
                     id={"type": "rolling-div", "player": str(self.num), "name": "tmp",},
                     style={"display": "none"},
@@ -103,7 +105,7 @@ class Player:
                         dbc.DropdownMenuItem("Entry 1"),
                         dbc.DropdownMenuItem("Entry 2"),
                         dbc.DropdownMenuItem(divider=True),
-                        dbc.DropdownMenuItem("Entry 3"),
+                        dbc.DropdownMenuItem("Quit", id="quit-button"),
                     ],
                 ),
             ],
@@ -284,7 +286,7 @@ def roll_skill(n_inc, sess_id):
         raise PreventUpdate
     trigger_obj = json.loads(ctx.triggered[0]["prop_id"].split(".")[0])
     attr = trigger_obj["name"]
-    p_num = int(trigger_obj["player"])
+    p_num = g_sessions[sess_id]["p_num"]
     p = g_players_list[p_num]
 
     p.attribute_tested.children = attr
@@ -304,6 +306,8 @@ def roll_skill(n_inc, sess_id):
     for gm_id in g_gm_list:
         g_sessions[gm_id]["update"] = True
     p.is_rolling = True
+    p.roll_outs[attr].children = dbc.Spinner(color="primary")
+    g_sessions[sess_id]["update"] = True
     while p.is_rolling == True:
         time.sleep(1)
     bonus = p.bonus
@@ -327,8 +331,10 @@ def roll_skill(n_inc, sess_id):
     result_out = f"{result} (dice : {dice}, skill : {target} ({value}+{bonus}))"
     for a in p.roll_outs:
         p.roll_outs[a].children = result_out if a == attr else ""
-    p.result_div.children = "Result: " +result_out
+    p.result_div.children = "Result: " + result_out
     g_sessions[sess_id]["update"] = True
+    for gm_id in g_gm_list:
+        g_sessions[gm_id]["update"] = True
     return [""] * len(ctx.outputs_list)
 
 
@@ -345,7 +351,7 @@ def creation_callback(n_buttons, v_states, sess_id):
     if not ctx.triggered or ctx.triggered[0]["value"] == None:
         raise PreventUpdate
     trigger = json.loads(ctx.triggered[0]["prop_id"].split(".")[0])
-    p_num = int(trigger["player"])
+    p_num = g_sessions[sess_id]["p_num"]
     p = g_players_list[p_num]
     for state in ctx.states_list[0]:
         p.p_data[state["id"]["name"]] = state["value"]
@@ -358,3 +364,15 @@ def creation_callback(n_buttons, v_states, sess_id):
     for gm_id in g_gm_list:
         g_sessions[gm_id]["update"] = True
     return [""] * len(ctx.outputs_list)
+
+
+@app.callback(
+    Output("player-div-tmp", "children"),
+    [Input("quit-button", "n_clicks")],
+    [State("sess_id", "children"),],
+)
+def creation_callback(n_buttons, sess_id):
+    ctx = dash.callback_context
+    if not ctx.triggered or ctx.triggered[0]["value"] == None:
+        raise PreventUpdate
+    gamemaster.disconnect_player(g_players_list[g_sessions[sess_id]["p_num"]])
