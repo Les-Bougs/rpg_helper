@@ -28,9 +28,10 @@ from app import app
 
 
 class Player:
-    def __init__(self, name, data):
-        self.name = name
+    def __init__(self, name, sess_id, data):
+        self.sess_id = sess_id
         self.p_data = data
+        self.name = name
         self.num = data["session_num"]
         self.create_layout()
         self.create_gm_interface()
@@ -39,6 +40,7 @@ class Player:
         self.is_rolling = False
         self.result = -1
         self.attribute_tested = html.H1("hoy")
+        self.result_div = html.Div("Result: ")
         self.btn_div = html.Div(
             [
                 self.attribute_tested,
@@ -325,6 +327,7 @@ def roll_skill(n_inc, sess_id):
     result_out = f"{result} (dice : {dice}, skill : {target} ({value}+{bonus}))"
     for a in p.roll_outs:
         p.roll_outs[a].children = result_out if a == attr else ""
+    p.result_div.children = "Result: " +result_out
     g_sessions[sess_id]["update"] = True
     return [""] * len(ctx.outputs_list)
 
@@ -352,4 +355,6 @@ def creation_callback(n_buttons, v_states, sess_id):
         ][0]
     p.main_div.children = p.create_skill_dash()
     g_sessions[sess_id]["update"] = True
+    for gm_id in g_gm_list:
+        g_sessions[gm_id]["update"] = True
     return [""] * len(ctx.outputs_list)

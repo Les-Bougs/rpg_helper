@@ -13,8 +13,8 @@ import datetime
 
 import index
 import player
-import gamemaster
 
+import gamemaster
 from global_data import g_players_list, g_sessions, g_verbose
 from app import app
 

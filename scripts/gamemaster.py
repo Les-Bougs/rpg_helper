@@ -1,4 +1,6 @@
 import json
+import numpy as np
+import time
 
 import dash
 import dash_core_components as dcc
@@ -13,8 +15,13 @@ from global_data import (
     g_sessions,
     g_gm_list,
     g_verbose,
+    g_attributes,
 )
 from app import app
+
+
+div_players = []
+players_dropdown = []
 
 
 def player_line(player):
@@ -26,6 +33,45 @@ def player_line(player):
                     width={"size": 3, "offset": 1},
                 ),
                 dbc.Col([dbc.Row([player.btn_div]),], width={"size": 4}),
+                dbc.Col([dbc.Row([player.result_div]),], width={"size": 4}),
+            ]
+        )
+    )
+
+
+def rolling_line():
+    return dbc.Jumbotron(
+        dbc.Row(
+            [
+                dbc.Col(
+                    dcc.Checklist(options=players_dropdown,
+                        id= "gm-roll-checklist-players"),
+                    width={"size": 3, "offset": 1},
+                ),
+                dbc.Col(
+                    dcc.Dropdown(
+                        options=[{"label": a, "value": a} for a in g_attributes],
+                        id= "gm-roll-dropbox-attribute"
+                    ),
+                    width={"size": 3, "offset": 1},
+                ),
+                dbc.Col(
+                    dcc.Dropdown(
+                        options=[
+                            {"label": p, "value": p} for p in ["easy", "medium", "hard"]
+                        ],
+                        id="gm-roll-dropbox-difficulty"
+                    ),
+                    width={"size": 3, "offset": 1},
+                ),
+                dbc.Col(
+                    dbc.Button(
+                        "Roll Dice",
+                        id="gm-roll-button",
+                        className="mr-1",
+                    ),
+                    width={"size": 3, "offset": 1},
+                ),
             ]
         )
     )
@@ -56,18 +102,24 @@ def page(name):
         [
             html.Div(id="gm_tmp", style={"display": "none"}),
             html.Div(id="gm_tmp2", style={"display": "none"}),
+            html.Div(id="gm_tmp3", style={"display": "none"}),
             dbc.Jumbotron(dbc.Row(html.Div(name + " The Game Master"))),
             html.Div(div_players),
             dbc.Button(
                 "Save Game", id={"type": "save-button", "name": "gm"}, className="mr-1",
             ),
+            rolling_line(),
         ]
     )
     return html.Div([navbar, body])
 
 
-div_players = []
 page_layout = html.Div(page("none"))
+
+
+def add_player_to_GM(p):
+    players_dropdown.append({"label": p.name, "value": p.name})
+    div_players.append(player_line(p))
 
 
 # callbacks
@@ -126,4 +178,44 @@ def index_callback(button_n, sess_id):
     for gm_id in g_gm_list:
         g_sessions[gm_id]["update"] = True
 
+    raise PreventUpdate
+
+
+# callbacks
+@app.callback(
+    Output("gm_tmp3", "children"),
+    [
+        Input("gm-roll-button", "n_clicks"),
+    ],
+    [
+        State("gm-roll-checklist-players", "value"),
+        State("gm-roll-dropbox-attribute", "value"),
+        State("gm-roll-dropbox-difficulty", "value"),
+        State("sess_id", "children"),
+    ],
+)
+def gm_roll_callback(button_n, players, attribute, difficulty, sess_id):
+    ctx = dash.callback_context
+    ## If no trigering event raise no update
+    if not ctx.triggered or ctx.triggered[0]["value"] == None or players==None or attribute==None or difficulty==None:
+        raise PreventUpdate
+
+    diff_val = {"easy":10, "medium":0, "hard":-10}
+    bonus = diff_val[difficulty]
+    for p in g_players_list:
+        if p.name in players:
+            value = p.p_data["attribute"][attribute]
+            target = value + bonus
+            dice = np.random.randint(0, 100)
+            if target >= dice:
+                result = "SUCCESS ✅"
+            else:
+                result = "FAIL ❌"
+            result_out = f"{result} (dice : {dice}, skill : {target} ({value}+{bonus}))"
+            for a in p.roll_outs:
+                p.roll_outs[a].children = result_out if a == attribute else ""
+            g_sessions[p.sess_id]["update"] = True
+            p.result_div.children = "Result: " +result_out
+    for gm_id in g_gm_list:
+        g_sessions[gm_id]["update"] = True
     raise PreventUpdate
