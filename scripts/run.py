@@ -15,7 +15,7 @@ import index
 import player
 import gamemaster
 
-from global_data import game_data, players_list, session_data
+from global_data import g_players_list, g_sessions
 from app import app
 
 
@@ -23,27 +23,34 @@ from flask import request
 
 
 def serve_layout():
+    print("new\n\n")
     sess_id = str(uuid.uuid4())  # create an ID
     sess_ip = request.environ.get(
         "HTTP_X_REAL_IP", request.remote_addr
     )  # Get IP of the client
 
     # Check if the ip already tried to connect less than 2sec ago
-    for sess in session_data:
-        if session_data[sess]["IP_add"] == sess_ip and session_data[sess][
-            "time_stamp"
-        ] > datetime.datetime.now() - datetime.timedelta(seconds=2):
+    exist = False
+    for sess in g_sessions:
+        dt = datetime.datetime.now() - datetime.timedelta(seconds=2)
+        if g_sessions[sess]["IP_add"] == sess_ip and (
+            g_sessions[sess]["time_stamp"] > dt or g_sessions[sess]["rem"] == True
+        ):
             sess_id = sess
             exist = True
+            g_sessions[sess_id]["update"] =True
             break
 
     if exist == False:
-        session_data[sess_id] = {
-            "error": False,
+        g_sessions[sess_id] = {
+            "error": "",
             "update": True,
             "name": "",
             "IP_add": sess_ip,
             "time_stamp": datetime.datetime.now(),
+            "context": "index",
+            "p_num": -1,
+            "rem": False,
         }
 
     return html.Div(
@@ -73,22 +80,29 @@ def update_content(sess_id, interval):
     ## if no data previously store send the client on the index page
     ctx = dash.callback_context
 
-    if session_data[sess_id]["error"] == True:
-        session_data[sess_id]["error"] = False
-        return index.index_layout
-
-    if not ctx.triggered or session_data[sess_id]["name"] == "":
+    layout = None
+    if g_sessions[sess_id]["update"] == True:
+        g_sessions[sess_id]["update"] = False
+        context = g_sessions[sess_id]["context"]
+        print(sess_id)
+        print(context)
+        print(g_sessions[sess_id])
+        if context == "index":  ## Connection context
+            if g_sessions[sess_id]["error"] == "":
+                index.alert_connection.style = {"display": "none"}
+            else:
+                index.alert_connection.style = None
+            index.alert_connection_text.children = g_sessions[sess_id]["error"]
+            layout = index.index_layout
+        elif context == "player":  ## Player context
+            p_num = g_sessions[sess_id]["p_num"]
+            if p_num != -1:
+                layout = g_players_list[p_num].layout
+        elif context == "gm":  ## if Game Master
+                layout = gamemaster.page_layout
+        return layout
+    else:
         raise PreventUpdate
-
-    name = session_data[sess_id]["name"]
-    ## if player
-    if game_data[name]["gm"] == "no" and len(players_list) > 0:
-        p_num = game_data[name]["session_num"]
-        p = players_list[p_num]
-        return p.layout
-    ## if Game Master
-    elif game_data[name]["gm"] == "yes":
-        return gamemaster.page_layout
 
 
 if __name__ == "__main__":

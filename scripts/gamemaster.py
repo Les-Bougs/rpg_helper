@@ -7,7 +7,7 @@ import dash
 from dash.exceptions import PreventUpdate
 from dash.dependencies import Input, Output, State, MATCH, ALL
 
-from global_data import game_data, players_list, session_data
+from global_data import g_data, g_players_list, g_sessions, g_gm_list, g_save_file
 from app import app
 import json
 
@@ -50,8 +50,17 @@ def page(name):
     body = html.Div(
         [
             html.Div(id="gm_tmp", style={"display": "none"}),
+            html.Div(id="gm_tmp2", style={"display": "none"}),
             dbc.Jumbotron(dbc.Row(html.Div(name + " The Game Master"))),
             html.Div(div_players),
+            dbc.Button(
+                "Save Game",
+                id={
+                    "type": "save-button",
+                    "name": "gm"
+                },
+                className="mr-1",
+            ),
         ]
     )
     return html.Div([navbar, body])
@@ -63,9 +72,28 @@ page_layout = html.Div(page("none"))
 
 # callbacks
 @app.callback(
+    Output("gm_tmp2", "children"),
+    [
+        Input({"type": "save-button","name": ALL}, "n_clicks"),
+        Input("sess_id", "children"),
+    ],
+)
+def save_callback(button_n, sess_id):
+    ctx = dash.callback_context
+    ## If no trigering event raise no update
+    if not ctx.triggered or ctx.triggered[0]["value"] == None:
+        raise PreventUpdate
+    print(g_data)
+    with open('../game_template/players.json', 'w') as fp:
+        json.dump(g_data, fp)
+    return ""
+
+
+# callbacks
+@app.callback(
     Output("gm_tmp", "children"),
     [
-        Input({"type": "p-button", "name": ALL}, "n_clicks"),
+        Input({"type": "difficulty-button", "player":ALL, "name": ALL}, "n_clicks"),
         Input("sess_id", "children"),
     ],
 )
@@ -76,13 +104,15 @@ def index_callback(button_n, sess_id):
     if not ctx.triggered or ctx.triggered[0]["value"] == None:
         raise PreventUpdate
 
+    print("hey")
+
     trigering_id = json.loads(ctx.triggered[0]["prop_id"].split(".")[0])
-    print("ouille")
     ## Stuff during the game context
-    context, name = trigering_id["name"].split("-")
-    p_num = int(name.split("_")[0])
+    bt = trigering_id["name"]
+    p_num = int(trigering_id["player"])
+
+    print(bt)
     print(p_num)
-    bt = name.split("_")[1]
     bonus = 0
     if bt == "easy":
         bonus = 10
@@ -91,9 +121,13 @@ def index_callback(button_n, sess_id):
     else:
         bonus = -10
 
-    players_list[p_num].bonus = bonus
-    players_list[p_num].is_rolling = False
+    g_players_list[p_num].bonus = bonus
+    g_players_list[p_num].is_rolling = False
 
-    players_list[p_num].btn_div.style = {"display": "none"}
+    g_players_list[p_num].btn_div.style = {"display": "none"}
+
+    #tell the GM session to update their layout
+    for gm_id in g_gm_list:
+        g_sessions[gm_id]["update"]=True
 
     raise PreventUpdate

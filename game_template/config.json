@@ -1,0 +1,60 @@
+{
+    "attributes": [
+	"strength",
+	"dexterity",
+	"stamina",
+	"charisma",
+	"inteligence",
+	"wisdom"
+    ],
+    "races": [
+	"orc",
+	"dwarf",
+	"elf",
+	"humain"
+    ],
+    "races_affinity": {
+	"orc":{
+	    "strength":[50,2],
+	    "dexterity":[50,2],
+	    "stamina":[50,2],
+	    "charisma":[50,2],
+	    "inteligence":[50,2],
+	    "wisdom":[50,2]
+	},
+	"dwarf":{
+	    "strength":[50,2],
+	    "dexterity":[50,2],
+	    "stamina":[50,2],
+	    "charisma":[50,2],
+	    "inteligence":[50,2],
+	    "wisdom":[50,2]
+	},
+	"elf":{
+	    "strength":[50,2],
+	    "dexterity":[50,2],
+	    "stamina":[50,2],
+	    "charisma":[50,2],
+	    "inteligence":[50,2],
+	    "wisdom":[50,2]
+	},
+	"humain":{
+	    "strength":[50,2],
+	    "dexterity":[50,2],
+	    "stamina":[50,2],
+	    "charisma":[50,2],
+	    "inteligence":[50,2],
+	    "wisdom":[50,2]
+	}
+    },
+    "classes": [
+	"hunter",
+	"bard",
+	"witch"
+    ],
+    "ressources" : [
+	"hp",
+	"mp",
+	"gold"
+    ]
+}

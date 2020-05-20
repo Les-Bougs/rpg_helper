@@ -10,7 +10,17 @@ from dash.dependencies import Input, Output, State, MATCH, ALL
 from dash.exceptions import PreventUpdate
 
 
-from global_data import game_data, players_list, session_data
+from global_data import (
+    g_data,
+    g_sessions,
+    g_players_list,
+    g_gm_list,
+    g_ressources,
+    g_races,
+    g_classes,
+    g_attributes,
+    g_races_affinity,
+)
 from app import app
 
 import json
@@ -24,40 +34,65 @@ class Player:
         self.p_data = data
         self.num = data["session_num"]
 
-        self.roll_outs = []
         self.create_layout()
+        self.create_gm_interface()
 
-        self.btn_easy = dbc.Button(
-            "easy",
-            id={"type": "p-button", "name": "gm-" + str(self.num) + "_easy"},
-            className="mr-1",
-        )
-        self.btn_medium = dbc.Button(
-            "medium",
-            id={"type": "p-button", "name": "gm-" + str(self.num) + "_medium"},
-            className="mr-1",
-        )
-        self.btn_hard = dbc.Button(
-            "hard",
-            id={"type": "p-button", "name": "gm-" + str(self.num) + "_hard"},
-            className="mr-1",
-        )
-
-        self.btn_div = html.Div(
-            [self.btn_easy, self.btn_medium, self.btn_hard], style={"display": "none"}
-        )
-
+    def create_gm_interface(self):
         self.is_rolling = False
         self.result = -1
+        self.btn_div = html.Div(
+            [
+                dbc.Button(
+                    "easy",
+                    id={
+                        "type": "difficulty-button",
+                        "player": str(self.num),
+                        "name": "easy",
+                    },
+                    className="mr-1",
+                ),
+                dbc.Button(
+                    "medium",
+                    id={
+                        "type": "difficulty-button",
+                        "player": str(self.num),
+                        "name": "medium",
+                    },
+                    className="mr-1",
+                ),
+                dbc.Button(
+                    "hard",
+                    id={
+                        "type": "difficulty-button",
+                        "player": str(self.num),
+                        "name": "hard",
+                    },
+                    className="mr-1",
+                ),
+            ],
+            style={"display": "none"},
+        )
 
     def create_layout(self):
-        p = self.p_data
+        self.roll_outs = {}
 
-        skilldash = self.create_skill_dash()
-        ressource_bar = self.create_ressource_bar()
+        self.creation_div = self.create_creation_div()
+
         ## NAVBAR
-        navbar = dbc.NavbarSimple(
+        navbar = self.create_navbar()
+        self.main_div = html.Div(self.creation_div)
+        body = dbc.Container([self.main_div], className="skilldash_class")
+
+        self.layout = html.Div([navbar, body])
+
+    def create_navbar(self):
+        ressource_bar = self.create_ressource_bar()
+        return dbc.NavbarSimple(
             children=[
+                html.Div(
+                    id={"type": "rolling-div", "player": str(self.num), "name": "tmp",},
+                    style={"display": "none"},
+                ),
                 dbc.Col(ressource_bar),
                 dbc.NavItem(dbc.NavLink("Link", href="#")),
                 dbc.DropdownMenu(
@@ -77,15 +112,69 @@ class Player:
             sticky="top",
         )
 
-        body = dbc.Container([skilldash], className="skilldash_class",)
-
-        self.layout = html.Div([navbar, body])
-
     def create_skill_dash(self):
         self.skill_dash = []
-        for skill, value in self.p_data["skills"].items():
+        for skill, value in self.p_data["attribute"].items():
             self.skill_dash.append(self.skill_bar(skill, value))
         return html.Div(self.skill_dash)
+
+    def create_creation_div(self):
+        return html.Div(
+            dbc.Row(
+                [
+                    html.Div(
+                        id={
+                            "type": "create_player-div",
+                            "player": str(self.num),
+                            "name": "tmp",
+                        },
+                        style={"display": "none"},
+                    ),
+                    dbc.Col(
+                        [
+                            html.H1("Races:"),
+                            dcc.Dropdown(
+                                options=[{"label": r, "value": r} for r in g_races],
+                                id={
+                                    "type": "create_player-dropbox",
+                                    "player": str(self.num),
+                                    "name": "race",
+                                },
+                            ),
+                        ],
+                        width={"size": 3},
+                    ),
+                    dbc.Col(
+                        [
+                            html.H1("Classes:"),
+                            dcc.Dropdown(
+                                options=[{"label": c, "value": c} for c in g_classes],
+                                id={
+                                    "type": "create_player-dropbox",
+                                    "player": str(self.num),
+                                    "name": "class",
+                                },
+                            ),
+                        ],
+                        width={"size": 3},
+                    ),
+                    dbc.Col(
+                        [
+                            html.H1("."),
+                            dbc.Button(
+                                "Create",
+                                id={
+                                    "type": "create_player-button",
+                                    "player": str(self.num),
+                                    "name": "button",
+                                },
+                            ),
+                        ],
+                        width={"size": 3},
+                    ),
+                ]
+            ),
+        )
 
     def create_ressource_bar(self):
         list_ress = []
@@ -105,8 +194,10 @@ class Player:
         return list_ress
 
     def skill_bar(self, skill, value):
-        out = html.Div("hey", id={"type": "d-roll-out", "index": f"{skill}"})
-        self.roll_outs.append(out)
+        out = html.Div(
+            "", id={"type": "rolling-div", "player": str(self.num), "name": f"{skill}",}
+        )
+        self.roll_outs[skill] = out
         return html.Div(
             [
                 dbc.Row(dbc.Col(html.Div(skill))),
@@ -136,7 +227,11 @@ class Player:
                         dbc.Col(out),
                         dbc.Button(
                             f"{skill} roll",
-                            id={"type": "d-button-roll", "index": f"{skill}"},
+                            id={
+                                "type": "rolling-button",
+                                "player": str(self.num),
+                                "name": f"{skill}",
+                            },
                             className="d-button",
                         ),
                     ],
@@ -145,16 +240,6 @@ class Player:
             ]
         )
 
-
-# TODO: Find better way to get dict_input
-game_file = open("../game_template/players.json")
-game_data = json.load(game_file)
-
-skillset = game_data["Nini"]["skills"]
-ressource = game_data["Nini"]["ressource"]
-
-dict_input = {key: i for i, key in enumerate(skillset)}
-# /TODO
 
 # WRITE BAR VALUE
 @app.callback(
@@ -189,34 +274,35 @@ def update_bar_value(n_inc, n_dec, value):
 
 ## ROLL
 @app.callback(
-    Output({"type": "d-roll-out", "index": ALL}, "children"),
-    [Input({"type": "d-button-roll", "index": ALL}, "n_clicks")],
-    [State({"type": "d-bar", "index": ALL}, "value"), State("sess_id", "children")],
+    Output({"type": "rolling-div", "player": MATCH, "name": "tmp"}, "children"),
+    [Input({"type": "rolling-button", "player": MATCH, "name": ALL}, "n_clicks")],
+    [State("sess_id", "children")],
 )
-def roll_skill(n_inc, value, sess_id):
+def roll_skill(n_inc, sess_id):
     ctx = dash.callback_context
-    inputs = ctx.inputs
-
     if not ctx.triggered or ctx.triggered[0]["value"] == None:
         raise PreventUpdate
 
-    trigger = json.loads(ctx.triggered[0]["prop_id"].split(".")[0])["index"]
-    trigger_id = dict_input[trigger]
-    value = value[trigger_id]
+    print(ctx.triggered)
 
-    name = session_data[sess_id]["name"]
-    jdata = game_data[name]
+    print(ctx.outputs_list)
 
-    p_num = game_data[name]["session_num"]
-    p = players_list[p_num]
-    players_list[p_num].btn_div.style = None
+    trigger_obj = json.loads(ctx.triggered[0]["prop_id"].split(".")[0])
+    attr = trigger_obj["name"]
+    p_num = int(trigger_obj["player"])
+
+    p = g_players_list[p_num]
+    p.btn_div.style = None
+    # tell the GM session to update their layout
+    for gm_id in g_gm_list:
+        g_sessions[gm_id]["update"] = True
 
     p.is_rolling = True
     while p.is_rolling == True:
         time.sleep(1)
     bonus = p.bonus
 
-
+    value = p.p_data["attribute"][attr]
     target = value + bonus
     dice = np.random.randint(0, 100)
     if target >= dice:
@@ -224,10 +310,45 @@ def roll_skill(n_inc, value, sess_id):
     else:
         result = "FAIL ❌"
     result_out = f"{result} (dice : {dice}, skill : {target} ({value}+{bonus}))"
-    out = [""] * (len(inputs.keys()))
-    out[trigger_id] = result_out
 
-    for i in range(len(p.roll_outs)):
-        p.roll_outs[i].children = out[i]
+    for a in p.roll_outs:
+        p.roll_outs[a].children = result_out if a == attr else ""
 
-    return out
+    g_sessions[sess_id]["update"] = True
+    return [""] * len(ctx.outputs_list)
+
+
+@app.callback(
+    Output({"type": "create_player-div", "player": MATCH, "name": "tmp"}, "children"),
+    [Input({"type": "create_player-button", "player": MATCH, "name": ALL}, "n_clicks")],
+    [
+        State({"type": "create_player-dropbox", "player": MATCH, "name": ALL}, "value"),
+        State("sess_id", "children"),
+    ],
+)
+def creation_callback(n_buttons, v_states, sess_id):
+    ctx = dash.callback_context
+    if not ctx.triggered or ctx.triggered[0]["value"] == None:
+        raise PreventUpdate
+
+    print(ctx.triggered)
+    trigger = json.loads(ctx.triggered[0]["prop_id"].split(".")[0])
+    p_num = int(trigger["player"])
+    p = g_players_list[p_num]
+
+    print("\n")
+    for state in ctx.states_list[0]:
+        p.p_data[state["id"]["name"]] = state["value"]
+
+    for attribute in p.p_data["attribute"]:
+        p.p_data["attribute"][attribute] = g_races_affinity[p.p_data["race"]][
+            attribute
+        ][0]
+
+    print(p.p_data)
+
+    p.main_div.children = p.create_skill_dash()
+
+    g_sessions[sess_id]["update"] = True
+
+    return [""] * len(ctx.outputs_list)

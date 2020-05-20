@@ -10,7 +10,7 @@ from dash.dependencies import Input, Output, State, MATCH, ALL
 import json
 
 
-from global_data import game_data, players_list, session_data
+from global_data import g_data, g_players_list, g_sessions, g_gm_list
 from app import app
 import player
 import gamemaster
@@ -78,6 +78,8 @@ body = html.Div(
                                                 },
                                                 type="text",
                                                 placeholder='Ex: "Nini"',
+                                                persistence="b",
+                                                persistence_type="local"
                                             )
                                         ),
                                     ]
@@ -96,6 +98,8 @@ body = html.Div(
                                                 },
                                                 type="password",
                                                 placeholder="Ex: 1234",
+                                                persistence="a",
+                                                persistence_type="local"
                                             )
                                         ),
                                     ]
@@ -117,10 +121,6 @@ body = html.Div(
                                                         "label": " Remember me",
                                                         "value": "REM",
                                                     },
-                                                    {
-                                                        "label": " Game Master",
-                                                        "value": "GM",
-                                                    },
                                                 ],
                                                 value=[],
                                             ),
@@ -132,7 +132,10 @@ body = html.Div(
                                     [
                                         dbc.Button(
                                             "New Player",
-                                            id="new_player",
+                                            id={
+                                                "type": "d-button",
+                                                "name": "connection-new",
+                                            },
                                             className="mr-1",
                                         ),
                                         dbc.Button(
@@ -174,7 +177,6 @@ def index_callback(button_n, sess_id, input_v):
     if not ctx.triggered or ctx.triggered[0]["value"] == None:
         raise PreventUpdate
 
-    print(ctx.triggered)
     ## Get the triggenring input
     trigering_id = json.loads(ctx.triggered[0]["prop_id"].split(".")[0])
 
@@ -186,68 +188,114 @@ def index_callback(button_n, sess_id, input_v):
         if context == "connection":
 
             ## get the different data of the connection form
-            data = session_data[sess_id]
+            data = g_sessions[sess_id]
             pseudo = ctx.states['{"name":"pseudo","type":"d-input"}.value']
             password = ctx.states['{"name":"password","type":"d-input"}.value']
-            GM = (
-                "GM"
+            data["rem"] = (
+                "REM"
                 in ctx.states['{"name":"connection-option","type":"d-input"}.value']
             )
 
             if pseudo == None or password == None:
-                alert_connection_text.children = "Please enter a pseudo and a password"
                 alert_connection.style = None
-                data["error"] = True
+                data["error"] = "Please enter a pseudo and a password"
 
             ## if it's a connection attempt
             elif name == "connect":
 
                 ## Search for player in the json data and compare password
-                if (pseudo in game_data) and game_data[pseudo]["password"] == password:
-                    p = game_data[pseudo]
+                p = None
+                if (pseudo in g_data) and g_data[pseudo]["password"] == password:
+                    p = g_data[pseudo]
                 ## If no player found display a warning message on the index page
-                if data == None:
-                    alert_connection_text.children = "Wrong Pseudo or Password"
+                if p == None:
                     alert_connection.style = None
-                    data["error"] = True
+                    data["error"] = "Wrong Pseudo or Password"
 
                 else:
-                    ## Test if the client is connecting with the right statue
-                    is_gm = p["gm"] == "yes"
-
-                    if GM != is_gm:
-                        alert_connection_text.children = "Wrong statue GM/player"
-                        alert_connection.style = None
-                        data["error"] = True
-
                     ## If everything is good
-                    else:
-                        alert_connection.style = {"display": "none"}
-                        data["name"] = pseudo
+                    print(pseudo +":"+password)
+                    is_gm = p["gm"] == "yes"
+                    alert_connection.style = {"display": "none"}
+                    data["name"] = pseudo
 
-                        ## If game master
-                        if is_gm:
-                            gamemaster.page_layout.children = gamemaster.page(pseudo)
-
-                        ## If player
+                    ## If game master
+                    if is_gm:
+                        data["context"] = "gm"
+                        gamemaster.page_layout.children = gamemaster.page(pseudo)
+                        if (sess_id in g_gm_list)==False:
+                            g_gm_list.append(sess_id)
+                    else:## If player
+                        data["error"] = ""
+                        data["context"] = "player"
+                        alrdy_exist = False
+                        for p in g_players_list:
+                            if p.name == pseudo:
+                                alrdy_exist = True
+                        if alrdy_exist == False:
+                            p = player.Player(pseudo, g_data[pseudo])
+                            p_num = len(g_players_list)
+                            data["p_num"] = p_num
+                            g_data[pseudo]["session_num"] = p_num
+                            g_players_list.append(p)
+                            gamemaster.div_players.append(gamemaster.player_line(p))
+                            p.main_div.children = p.create_skill_dash()
                         else:
-                            alrdy_exist = False
-                            for p in players_list:
-                                if p.name == pseudo:
-                                    alrdy_exist = True
-                            if alrdy_exist == False:
-                                p = player.Player(pseudo, game_data[pseudo])
-                                game_data[data["name"]]["session_num"] = len(
-                                    players_list
-                                )
-                                players_list.append(p)
-                                gamemaster.div_players.append(gamemaster.player_line(p))
+                            data["p_num"] = g_data[pseudo]["session_num"]
 
+                        #tell the GM session to update their layout
+                        for gm_id in g_gm_list:
+                            g_sessions[gm_id]["update"]=True
+                            
+                            
             ## If it's a new player attempt
-            elif name == "new-player":
-                pass  # todo process to create a new player add it to the players.json file + lauch the player page
+            elif name == "new":
+                ## If pseudo already used by other character
+                if (pseudo in g_data):
+                    alert_connection.style = None
+                    data["error"] = "Pseudo already used"
+                else:
+                    
+                    ## If everything is good
+                    print(pseudo +":"+password)
+                    
+                    p_num = len(g_players_list)
+                    data["error"] = ""
+                    data["context"] = "player"
+                    data["p_num"] = p_num
+                    data["name"] = pseudo
+                    g_data[pseudo] =  {
+	                "password" : password,
+	                "gm" : "no",
+	                "session_num" : p_num,
+	                "race" : "",
+	                "class" : "",
+	                "ressource" : {
+	                    "hp" : 100,
+	                    "mp" : 100,
+	                    "gold" : 200
+	                },
+	                "attribute" : {
+	                    "strength":0,
+	                    "dexterity":0,
+	                    "stamina":0,
+	                    "charisma":0,
+	                    "inteligence":0,
+	                    "wisdom":0
+	                },
+	                "inventory" : []
+                    }
+                    print(g_data[pseudo]["session_num"])
+                    p = player.Player(pseudo, g_data[pseudo])
+                    g_players_list.append(p)
+                    gamemaster.div_players.append(gamemaster.player_line(p))
+                    #tell the GM session to update their layout
+                    for gm_id in g_gm_list:
+                        g_sessions[gm_id]["update"]=True
 
+            
             ## return the player /GM profil if one was found/created
+            data["update"] = True 
             return ""
     else:
         raise PreventUpdate
