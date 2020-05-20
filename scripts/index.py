@@ -234,9 +234,9 @@ def index_callback(button_n, sess_id, input_v):
                             p_num = len(g_players_list)
                             data["p_num"] = p_num
                             g_data[pseudo]["session_num"] = p_num
-                            p = player.Player(pseudo, g_data[pseudo])
+                            p = player.Player(pseudo, sess_id, g_data[pseudo])
                             g_players_list.append(p)
-                            gamemaster.div_players.append(gamemaster.player_line(p))
+                            gamemaster.add_player_to_GM(p)
                             p.main_div.children = p.create_skill_dash()
                         else:
                             data["p_num"] = g_data[pseudo]["session_num"]
@@ -275,7 +275,7 @@ def index_callback(button_n, sess_id, input_v):
                         },
                         "inventory": [],
                     }
-                    p = player.Player(pseudo, g_data[pseudo])
+                    p = player.Player(pseudo, sess_id, g_data[pseudo])
                     g_players_list.append(p)
                     gamemaster.div_players.append(gamemaster.player_line(p))
                     # tell the GM session to update their layout
