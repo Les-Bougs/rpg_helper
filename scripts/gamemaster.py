@@ -12,7 +12,6 @@ from global_data import (
     g_players_list,
     g_sessions,
     g_gm_list,
-    g_save_file,
     g_verbose,
 )
 from app import app
