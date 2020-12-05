@@ -16,4 +16,3 @@ cache = Cache(app.server, config={
     # higher numbers will store more data in the filesystem / redis cache
     'CACHE_THRESHOLD': 200
 })
-

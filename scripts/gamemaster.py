@@ -28,31 +28,38 @@ def disconnect_player(player):
     del div_players[player.num]
     del players_dropdown[player.num]
     g_players_list.remove(player)
-    g_sessions[player.sess_id]["context"]="index"
-    g_sessions[player.sess_id]["update"]=True
-    g_sessions[player.sess_id]["p_num"]=-1
+    g_sessions[player.sess_id]["context"] = "index"
+    g_sessions[player.sess_id]["update"] = True
+    g_sessions[player.sess_id]["p_num"] = -1
     for i in range(len(g_players_list)):
         p = g_players_list[i]
         p.num = i
-        g_sessions[p.sess_id]["p_num"]=i
+        g_sessions[p.sess_id]["p_num"] = i
         p.p_data["session_num"] = i
-        g_sessions[p.sess_id]["update"]=True
+        g_sessions[p.sess_id]["update"] = True
     for gm_id in g_gm_list:
         g_sessions[gm_id]["update"] = True
 
+
 def player_line(player):
     return dbc.Jumbotron(
-        dbc.Row(
-            [
-                dbc.Col(
-                    [html.H1(player.name, className="display-3"),],
-                    width={"size": 3, "offset": 1},
-                ),
-                dbc.Col([dbc.Row([player.btn_div]),], width={"size": 4}),
-                dbc.Col([dbc.Row([player.result_div]),], width={"size": 4}),
-            ]
-        )
-    )
+        dbc.Row([
+            html.Div(id={"type": "xp-div",
+                         "player": str(player.num)},
+                     style={"display": "none"}),
+            dbc.Col(
+                [html.H1(player.name, className="display-3")],
+                width={"size": 3, "offset": 1},
+            ),
+            dbc.Col([dbc.Row([player.btn_div])], width={"size": 3}),
+            dbc.Col([dbc.Row([player.result_div])], width={"size": 3}),
+            dbc.Col([dbc.Row([dbc.Button("Give XP",
+                                         id={"type": "xp-button",
+                                             "player": str(player.num)},
+                                         className="mr-1")])],
+                    width={"size": 1})
+        ]
+        ))
 
 
 def rolling_line():
@@ -61,15 +68,13 @@ def rolling_line():
             [
                 dbc.Col(
                     dcc.Checklist(options=players_dropdown,
-                        id= "gm-roll-checklist-players"),
+                                  id="gm-roll-checklist-players"),
                     width={"size": 3, "offset": 1},
                 ),
                 dbc.Col(
-                    dcc.Dropdown(
-                        options=[{"label": a, "value": a} for a in g_attributes],
-                        id= "gm-roll-dropbox-attribute"
-                    ),
-                    width={"size": 3, "offset": 1},
+                    dcc.Dropdown(options=[{"label": a, "value": a} for a in g_attributes],
+                                 id="gm-roll-dropbox-attribute"),
+                    width={"size": 3},
                 ),
                 dbc.Col(
                     dcc.Dropdown(
@@ -78,7 +83,7 @@ def rolling_line():
                         ],
                         id="gm-roll-dropbox-difficulty"
                     ),
-                    width={"size": 3, "offset": 1},
+                    width={"size": 3},
                 ),
                 dbc.Col(
                     dbc.Button(
@@ -86,7 +91,34 @@ def rolling_line():
                         id="gm-roll-button",
                         className="mr-1",
                     ),
+                    width={"size": 1, "offset": 1},
+                ),
+            ]
+        )
+    )
+
+
+def move_to_card_line():
+    return dbc.Jumbotron(
+        dbc.Row(
+            [
+                dbc.Col(
+                    dcc.Checklist(options=players_dropdown,
+                                  id="gm-move-to-card-checklist-players"),
                     width={"size": 3, "offset": 1},
+                ),
+                dbc.Col(
+                    dcc.Dropdown(options=[{"label": a, "value": a} for a in g_attributes],
+                                 id="gm-move-to-card-dropbox-card"),
+                    width={"size": 3},
+                ),
+                dbc.Col(
+                    dbc.Button(
+                        "Move",
+                        id="gm-move-to-card-button",
+                        className="mr-1",
+                    ),
+                    width={"size": 1, "offset": 1},
                 ),
             ]
         )
@@ -119,12 +151,30 @@ def page(name):
             html.Div(id="gm_tmp", style={"display": "none"}),
             html.Div(id="gm_tmp2", style={"display": "none"}),
             html.Div(id="gm_tmp3", style={"display": "none"}),
+            html.Div(id="gm_tmp3", style={"display": "none"}),
             dbc.Jumbotron(dbc.Row(html.Div(name + " The Game Master"))),
             html.Div(div_players),
             dbc.Button(
                 "Save Game", id={"type": "save-button", "name": "gm"}, className="mr-1",
             ),
             rolling_line(),
+            move_to_card_line(),
+            dbc.Card(
+                [
+                    dbc.CardImg(src="/static/images/placeholder286x180.png", top=True),
+                    dbc.CardBody(
+                        [
+                            html.H4("Card title", className="card-title"),
+                            html.P(
+                                "Some quick example text to build on the card title and "
+                                "make up the bulk of the card's content.",
+                                className="card-text",
+                            ),
+                            dbc.Button("Go somewhere", color="primary"),
+                        ]
+                    )
+                ],
+                style={"width": "18rem"})
         ]
     )
     return html.Div([navbar, body])
@@ -209,11 +259,11 @@ def p_btn_callback(button_n, sess_id):
 )
 def gm_roll_callback(button_n, players, attribute, difficulty, sess_id):
     ctx = dash.callback_context
-    ## If no trigering event raise no update
-    if not ctx.triggered or ctx.triggered[0]["value"] == None or players==None or attribute==None or difficulty==None:
+    # If no trigering event raise no update
+    if not ctx.triggered or ctx.triggered[0]["value"] is None or players is None or attribute is None or difficulty is None:
         raise PreventUpdate
 
-    diff_val = {"easy":10, "medium":0, "hard":-10}
+    diff_val = {"easy": 10, "medium": 0, "hard": -10}
     bonus = diff_val[difficulty]
     for p in g_players_list:
         if p.name in players:
@@ -228,7 +278,63 @@ def gm_roll_callback(button_n, players, attribute, difficulty, sess_id):
             for a in p.roll_outs:
                 p.roll_outs[a].children = result_out if a == attribute else ""
             g_sessions[p.sess_id]["update"] = True
-            p.result_div.children = "Result: " +result_out
+            p.result_div.children = "Result: " + result_out
+    for gm_id in g_gm_list:
+        g_sessions[gm_id]["update"] = True
+    raise PreventUpdate
+
+
+# callbacks
+@app.callback(
+    Output({"type": "xp-div", "player": MATCH}, "children"),
+    [Input({"type": "xp-button", "player": MATCH}, "n_clicks")]
+)
+def give_xp_callback(button_n):
+    ctx = dash.callback_context
+    if not ctx.triggered or ctx.triggered[0]["value"] is None:
+        raise PreventUpdate
+    trigger_obj = json.loads(ctx.triggered[0]["prop_id"].split(".")[0])
+    p_num = trigger_obj["player"]
+    p = g_players_list[int(p_num)]
+    for a in p.skill_bar_obj:
+        p.skill_bar_obj[a]["button_inc"].disabled = False
+    g_sessions[p.sess_id]["update"] = True
+
+
+# callbacks
+@app.callback(
+    Output("gm_tmp4", "children"),
+    [
+        Input("gm-move-to-card-button", "n_clicks"),
+    ],
+    [
+        State("gm-move-to-card-checklist-players", "value"),
+        State("gm-move-to-card-dropbox-card", "value"),
+        State("sess_id", "children"),
+    ],
+)
+def gm_move_to_card_callback(button_n, players, attribute, difficulty, sess_id):
+    ctx = dash.callback_context
+    # If no trigering event raise no update
+    if not ctx.triggered or ctx.triggered[0]["value"] is None or players is None or attribute is None or difficulty is None:
+        raise PreventUpdate
+
+    diff_val = {"easy": 10, "medium": 0, "hard": -10}
+    bonus = diff_val[difficulty]
+    for p in g_players_list:
+        if p.name in players:
+            value = p.p_data["attribute"][attribute]
+            target = value + bonus
+            dice = np.random.randint(0, 100)
+            if target >= dice:
+                result = "SUCCESS ✅"
+            else:
+                result = "FAIL ❌"
+            result_out = f"{result} (dice : {dice}, skill : {target} ({value}+{bonus}))"
+            for a in p.roll_outs:
+                p.roll_outs[a].children = result_out if a == attribute else ""
+            g_sessions[p.sess_id]["update"] = True
+            p.result_div.children = "Result: " + result_out
     for gm_id in g_gm_list:
         g_sessions[gm_id]["update"] = True
     raise PreventUpdate

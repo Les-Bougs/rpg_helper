@@ -14,7 +14,7 @@ from app import app
 import player
 import gamemaster
 
-
+# Def of the navigation bar on top of the page
 navbar = dbc.NavbarSimple(
     children=[
         dbc.NavItem(dbc.NavLink("Link", href="#")),
@@ -35,7 +35,7 @@ navbar = dbc.NavbarSimple(
     sticky="top",
 )
 
-
+# Object to display a alert when an error occured
 alert_connection_text = html.Div("")
 alert_connection = dbc.Alert(
     alert_connection_text,
@@ -170,23 +170,24 @@ index_layout = html.Div([navbar, body])
     [State({"type": "d-input", "name": ALL}, "value")],
 )
 def index_callback(button_n, sess_id, input_v):
+    ''' each time a button in the index page is triggered this function is called '''
     ctx = dash.callback_context
 
-    ## If no trigering event raise no update
-    if not ctx.triggered or ctx.triggered[0]["value"] == None:
+    # If no trigering event raise no update
+    if not ctx.triggered or ctx.triggered[0]["value"] is None:
         raise PreventUpdate
 
-    ## Get the triggenring input
+    # Get the triggenring input
     trigering_id = json.loads(ctx.triggered[0]["prop_id"].split(".")[0])
 
-    ## If it's a button
+    # If it's a button
     if trigering_id["type"] == "d-button":
         context, name = trigering_id["name"].split("-")
 
-        ## if the context is the connection page
+        # if the context is the connection page
         if context == "connection":
 
-            ## get the different data of the connection form
+            # get the different data of the connection form
             data = g_sessions[sess_id]
             pseudo = ctx.states['{"name":"pseudo","type":"d-input"}.value']
             password = ctx.states['{"name":"password","type":"d-input"}.value']
@@ -195,42 +196,42 @@ def index_callback(button_n, sess_id, input_v):
                 in ctx.states['{"name":"connection-option","type":"d-input"}.value']
             )
 
-            if pseudo == None or password == None:
+            if pseudo is None or password is None:
                 alert_connection.style = None
                 data["error"] = "Please enter a pseudo and a password"
 
-            ## if it's a connection attempt
+            # if it's a connection attempt
             elif name == "connect":
 
-                ## Search for player in the json data and compare password
+                # Search for player in the json data and compare password
                 p = None
                 if (pseudo in g_data) and g_data[pseudo]["password"] == password:
                     p = g_data[pseudo]
-                ## If no player found display a warning message on the index page
-                if p == None:
+                # If no player found display a warning message on the index page
+                if p is None:
                     alert_connection.style = None
                     data["error"] = "Wrong Pseudo or Password"
 
                 else:
-                    ## If everything is good
+                    # If everything is good
                     is_gm = p["gm"] == "yes"
                     alert_connection.style = {"display": "none"}
                     data["name"] = pseudo
 
-                    ## If game master
+                    # If game master
                     if is_gm:
                         data["context"] = "gm"
                         gamemaster.page_layout.children = gamemaster.page(pseudo)
-                        if (sess_id in g_gm_list) == False:
+                        if (sess_id in g_gm_list) is False:
                             g_gm_list.append(sess_id)
-                    else:  ## If player
+                    else:  # If player
                         data["error"] = ""
                         data["context"] = "player"
                         alrdy_exist = False
                         for p in g_players_list:
                             if p.name == pseudo:
                                 alrdy_exist = True
-                        if alrdy_exist == False:
+                        if alrdy_exist is False:
                             p_num = len(g_players_list)
                             data["p_num"] = p_num
                             g_data[pseudo]["session_num"] = p_num
@@ -245,14 +246,14 @@ def index_callback(button_n, sess_id, input_v):
                         for gm_id in g_gm_list:
                             g_sessions[gm_id]["update"] = True
 
-            ## If it's a new player attempt
+            # If it's a new player attempt
             elif name == "new":
-                ## If pseudo already used by other character
+                # If pseudo already used by other character
                 if pseudo in g_data:
                     alert_connection.style = None
                     data["error"] = "Pseudo already used"
                 else:
-                    ## If everything is good
+                    # If everything is good
                     p_num = len(g_players_list)
                     data["error"] = ""
                     data["context"] = "player"
@@ -282,7 +283,7 @@ def index_callback(button_n, sess_id, input_v):
                     for gm_id in g_gm_list:
                         g_sessions[gm_id]["update"] = True
 
-            ## return the player /GM profil if one was found/created
+            # return the player /GM profil if one was found/created
             data["update"] = True
             return ""
     else:

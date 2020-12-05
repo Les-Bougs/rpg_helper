@@ -5,9 +5,7 @@ import time
 import dash
 import dash_bootstrap_components as dbc
 import dash_core_components as dcc
-import dash_daq as daq
 import dash_html_components as html
-import dash_auth
 from dash.dependencies import Input, Output, State, MATCH, ALL
 from dash.exceptions import PreventUpdate
 
@@ -78,6 +76,7 @@ class Player:
 
     def create_layout(self):
         self.roll_outs = {}
+        self.skill_bar_obj = {}
         # player Creation div
         self.creation_div = self.create_creation_div()
         ## NAVBAR
@@ -196,10 +195,24 @@ class Player:
         return list_ress
 
     def skill_bar(self, skill, value):
-        out = html.Div(
-            "", id={"type": "rolling-div", "player": str(self.num), "name": f"{skill}",}
-        )
-        self.roll_outs[skill] = out
+        # Create those object as player attribute to be able to reach them later in callback functions
+        self.roll_outs[skill] = html.Div("", id={"type": "rolling-div",
+                                                 "player": str(self.num),
+                                                 "name": f"{skill}"})
+        self.skill_bar_obj[skill] = {}
+        self.skill_bar_obj[skill]["progress_bar"] = dbc.Progress(f"{value}",
+                                                                 value=value,
+                                                                 striped=False,
+                                                                 style={"height": "30px"},
+                                                                 id={"type": "d-bar", "name": f"{skill}"})
+        self.skill_bar_obj[skill]["button_dec"] = dbc.Button("-",
+                                                             id={"type": "d-button-dec", "name": f"{skill}"},
+                                                             className="d-button",
+                                                             disabled=True)
+        self.skill_bar_obj[skill]["button_inc"] = dbc.Button("+",
+                                                             id={"type": "d-button-inc", "name": f"{skill}"},
+                                                             className="d-button",
+                                                             disabled=True)
         return html.Div(
             [
                 dbc.Row(dbc.Col(html.Div(skill))),
@@ -207,26 +220,12 @@ class Player:
                     [
                         dbc.Col(
                             html.Div(
-                                dbc.Progress(
-                                    f"{value}",
-                                    value=value,
-                                    striped=False,
-                                    style={"height": "30px"},
-                                    id={"type": "d-bar", "index": f"{skill}"},
-                                )
+                                self.skill_bar_obj[skill]["progress_bar"]
                             )
                         ),
-                        dbc.Button(
-                            f"-",
-                            id={"type": "d-button-dec", "index": f"{skill}"},
-                            className="d-button",
-                        ),
-                        dbc.Button(
-                            f"+",
-                            id={"type": "d-button-inc", "index": f"{skill}"},
-                            className="d-button",
-                        ),
-                        dbc.Col(out),
+                        self.skill_bar_obj[skill]["button_dec"],
+                        self.skill_bar_obj[skill]["button_inc"],
+                        dbc.Col(self.roll_outs[skill]),
                         dbc.Button(
                             f"{skill} roll",
                             id={
@@ -243,38 +242,30 @@ class Player:
         )
 
 
-# WRITE BAR VALUE
-@app.callback(
-    Output({"type": "d-bar", "index": MATCH}, "children"),
-    [Input({"type": "d-bar", "index": MATCH}, "value")],
-)
-def update_bar_display(input_value):
-    return input_value
-
-
 # INCREASE/DECREASE BAR
 @app.callback(
-    Output({"type": "d-bar", "index": MATCH}, "value"),
-    [
-        Input({"type": "d-button-inc", "index": MATCH}, "n_clicks"),
-        Input({"type": "d-button-dec", "index": MATCH}, "n_clicks"),
-    ],
-    [State({"type": "d-bar", "index": MATCH}, "value")],
+    Output({"type": "d-bar", "name": MATCH}, "value"),
+    [Input({"type": "d-button-inc", "name": MATCH}, "n_clicks")],
+    [State("sess_id", "children")],
 )
-def update_bar_value(n_inc, n_dec, value):
+def update_bar_value(n_inc, sess_id):
     ctx = dash.callback_context
-    if not ctx.triggered or ctx.triggered[0]["value"] == None:
+    if not ctx.triggered or ctx.triggered[0]["value"] is None:
         raise PreventUpdate
-
-    button_type = json.loads(ctx.triggered[0]["prop_id"].split(".")[0])["type"]
-    if button_type == "d-button-inc" and value < 100:
-        return min(value + 10, 100)
-    elif button_type == "d-button-dec" and value > 0:
-        return max(value - 10, 0)
+    trigger_obj = json.loads(ctx.triggered[0]["prop_id"].split(".")[0])
+    attr = trigger_obj["name"]
+    p_num = g_sessions[sess_id]["p_num"]
+    p = g_players_list[p_num]
+    p.p_data["attribute"][attr] += 1
+    value = p.p_data["attribute"][attr]
+    p.skill_bar_obj[attr]["progress_bar"].value = value
+    p.skill_bar_obj[attr]["progress_bar"].children = str(value)
+    p.skill_bar_obj[attr]["button_inc"].disabled = True
+    g_sessions[sess_id]["update"] = True
     return value
 
 
-## ROLL
+# ROLL
 @app.callback(
     Output({"type": "rolling-div", "player": MATCH, "name": "tmp"}, "children"),
     [Input({"type": "rolling-button", "player": MATCH, "name": ALL}, "n_clicks")],
@@ -282,7 +273,7 @@ def update_bar_value(n_inc, n_dec, value):
 )
 def roll_skill(n_inc, sess_id):
     ctx = dash.callback_context
-    if not ctx.triggered or ctx.triggered[0]["value"] == None:
+    if not ctx.triggered or ctx.triggered[0]["value"] is None:
         raise PreventUpdate
     trigger_obj = json.loads(ctx.triggered[0]["prop_id"].split(".")[0])
     attr = trigger_obj["name"]
@@ -308,7 +299,7 @@ def roll_skill(n_inc, sess_id):
     p.is_rolling = True
     p.roll_outs[attr].children = dbc.Spinner(color="primary")
     g_sessions[sess_id]["update"] = True
-    while p.is_rolling == True:
+    while p.is_rolling is True:
         time.sleep(1)
     bonus = p.bonus
     value = p.p_data["attribute"][attr]
@@ -331,6 +322,7 @@ def roll_skill(n_inc, sess_id):
     result_out = f"{result} (dice : {dice}, skill : {target} ({value}+{bonus}))"
     for a in p.roll_outs:
         p.roll_outs[a].children = result_out if a == attr else ""
+
     p.result_div.children = "Result: " + result_out
     g_sessions[sess_id]["update"] = True
     for gm_id in g_gm_list:
@@ -356,9 +348,7 @@ def creation_callback(n_buttons, v_states, sess_id):
     for state in ctx.states_list[0]:
         p.p_data[state["id"]["name"]] = state["value"]
     for attribute in p.p_data["attribute"]:
-        p.p_data["attribute"][attribute] = g_races_affinity[p.p_data["race"]][
-            attribute
-        ][0]
+        p.p_data["attribute"][attribute] = g_races_affinity[p.p_data["race"]][attribute][0]
     p.main_div.children = p.create_skill_dash()
     g_sessions[sess_id]["update"] = True
     for gm_id in g_gm_list:
