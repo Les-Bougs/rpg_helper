@@ -135,6 +135,7 @@ body = html.Div(
                                                 "type": "d-button",
                                                 "name": "connection-new",
                                             },
+                                            disabled=True,
                                             className="mr-1",
                                         ),
                                         dbc.Button(

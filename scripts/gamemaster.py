@@ -47,13 +47,31 @@ def player_line(player):
         dbc.CardBody([html.Div(id={"type": "xp-div",
                                    "player": str(player.num)},
                                style={"display": "none"}),
+                      html.Div(id={"type": "ress-div",
+                                   "player": str(player.num)},
+                               style={"display": "none"}),
                       html.H1(player.name),
                       player.btn_div,
                       player.result_div,
+                      html.Div(ressource_input(player)),
+                      dbc.Button("Set ressources",
+                                 id={"type": "ress-button", "player": str(player.num)},
+                                 block=True),
                       dbc.Button("Give XP",
-                                 id={"type": "xp-button",
-                                     "player": str(player.num)})
+                                 id={"type": "xp-button", "player": str(player.num)},
+                                 block=True),
                       ]), style={"width": "16rem"})
+
+
+def ressource_input(player):
+    return [dbc.Row([dbc.Col(html.P(ress), width={"size": 4, "offset": 0}),
+                     dbc.Col(dbc.Input(type="number",
+                                       value=value,
+                                       min=0,
+                                       step=1,
+                                       id={"type": "ress-input",
+                                           "player": str(player.num),
+                                           "ressource": ress}))]) for ress, value in player.p_data["ressource"].items()]
 
 
 def rolling_line():
@@ -317,4 +335,34 @@ def give_xp_callback(button_n):
     p = g_players_list[int(p_num)]
     for a in p.skill_bar_obj:
         p.skill_bar_obj[a]["button_inc"].disabled = False
+    g_sessions[p.sess_id]["update"] = True
+
+
+# callbacks
+@app.callback(
+    Output({"type": "ress-div", "player": MATCH}, "children"),
+    [Input({"type": "ress-button", "player": MATCH}, "n_clicks")],
+    [
+        State({"type": "ress-input", "player": MATCH, "ressource": ALL}, "value")
+    ]
+)
+def set_ressources_callback(button_n, value):
+    ctx = dash.callback_context
+    if not ctx.triggered or ctx.triggered[0]["value"] is None:
+        raise PreventUpdate
+    print(value)
+    trigger_obj = json.loads(ctx.triggered[0]["prop_id"].split(".")[0])
+    p_num = trigger_obj["player"]
+    p = g_players_list[int(p_num)]
+
+    index = 0
+    for ress in p.p_data["ressource"]:
+        p.p_data["ressource"][ress] = value[index]
+        index += 1
+
+    p.ressource_div.children = ""
+    for ress, value in p.p_data["ressource"].items():
+        p.ressource_div.children += "| " + f"{ress} : {value} "
+    p.ressource_div.children += "|"
+
     g_sessions[p.sess_id]["update"] = True

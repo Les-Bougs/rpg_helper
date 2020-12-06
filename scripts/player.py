@@ -31,6 +31,8 @@ class Player:
         self.sess_id = sess_id
         self.p_data = data
         self.name = name
+        self.raceName = self.p_data["race"]
+        self.className = self.p_data["class"]
         self.num = data["session_num"]
         self.cards = []
         self.create_layout()
@@ -118,7 +120,9 @@ class Player:
         self.skill_dash = []
         for skill, value in self.p_data["attribute"].items():
             self.skill_dash.append(self.skill_bar(skill, value))
-        return dbc.Col([html.Div(self.skill_dash),
+        return dbc.Col([dbc.Row(html.H1(self.name)),
+                        dbc.Row(html.H3(self.raceName + " " + self.className)),
+                        html.Div(self.skill_dash),
                         dbc.Row(self.cards)])
 
     def create_creation_div(self):
@@ -180,21 +184,11 @@ class Player:
         )
 
     def create_ressource_bar(self):
-        list_ress = []
+        self.ressource_div = html.Div("")
         for ress, value in self.p_data["ressource"].items():
-            list_ress.append(
-                html.Div(
-                    [
-                        dbc.Row(
-                            html.Div(
-                                f"{ress} : {value}",
-                                id={"type": f"ress-{ress}", "index": f"ress-{ress}"},
-                            )
-                        ),
-                    ]
-                )
-            )
-        return list_ress
+            self.ressource_div.children += "| " + f"{ress} : {value} "
+        self.ressource_div.children += "|"
+        return self.ressource_div
 
     def skill_bar(self, skill, value):
         # Create those object as player attribute to be able to reach them later in callback functions
