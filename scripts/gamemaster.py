@@ -145,6 +145,9 @@ def page(name):
                     dbc.DropdownMenuItem("Quit"),
                 ],
             ),
+            dbc.Button(
+                "Save Game", id={"type": "save-button", "name": "gm"}, className="mr-1",
+            ),
         ],
         brand="RPG Helper",
         brand_href="#",
@@ -157,11 +160,7 @@ def page(name):
             html.Div(id="gm_tmp2", style={"display": "none"}),
             html.Div(id="gm_tmp3", style={"display": "none"}),
             html.Div(id="gm_tmp4", style={"display": "none"}),
-            dbc.Jumbotron(dbc.Row(html.Div(name + " The Game Master"))),
             html.Div(div_players),
-            dbc.Button(
-                "Save Game", id={"type": "save-button", "name": "gm"}, className="mr-1",
-            ),
             rolling_line(),
             move_to_card_line(),
             cards_line()
@@ -311,7 +310,6 @@ def gm_move_to_card_callback(button_n, players, card, sess_id):
     raise PreventUpdate
 
 
-
 # callbacks
 @app.callback(
     Output({"type": "xp-div", "player": MATCH}, "children"),
@@ -327,6 +325,3 @@ def give_xp_callback(button_n):
     for a in p.skill_bar_obj:
         p.skill_bar_obj[a]["button_inc"].disabled = False
     g_sessions[p.sess_id]["update"] = True
-
-
-
