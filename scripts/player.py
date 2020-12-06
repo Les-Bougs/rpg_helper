@@ -32,6 +32,7 @@ class Player:
         self.p_data = data
         self.name = name
         self.num = data["session_num"]
+        self.cards = []
         self.create_layout()
         self.create_gm_interface()
 
@@ -117,7 +118,8 @@ class Player:
         self.skill_dash = []
         for skill, value in self.p_data["attribute"].items():
             self.skill_dash.append(self.skill_bar(skill, value))
-        return html.Div(self.skill_dash)
+        return dbc.Col([html.Div(self.skill_dash),
+                        dbc.Row(self.cards)])
 
     def create_creation_div(self):
         return html.Div(
@@ -174,7 +176,7 @@ class Player:
                         width={"size": 3},
                     ),
                 ]
-            ),
+            )
         )
 
     def create_ressource_bar(self):

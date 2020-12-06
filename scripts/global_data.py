@@ -1,4 +1,6 @@
 import json
+import dash_bootstrap_components as dbc
+import dash_html_components as html
 
 g_verbose = True
 data_file = open("../game_template/players.json")
@@ -17,3 +19,13 @@ g_ressources = g_config["ressources"]
 g_classes = g_config["classes"]
 g_races = g_config["races"]
 g_races_affinity = g_config["races_affinity"]
+
+g_cards_name = g_config["cards"]
+g_cards = [dbc.Card([dbc.CardImg(src=g_config["cards"][card_name]["src"], top=True),
+                     dbc.CardBody(
+                         [
+                            html.H4(card_name, className="card-title"),
+                            html.P(g_config["cards"][card_name]["description"],
+                                   className="card-text")
+                         ])],
+                    style={"width": "38rem"}) for card_name in g_config["cards"]]

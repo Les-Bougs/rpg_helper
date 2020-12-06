@@ -1,6 +1,5 @@
 import json
 import numpy as np
-import time
 
 import dash
 import dash_core_components as dcc
@@ -16,6 +15,8 @@ from global_data import (
     g_gm_list,
     g_verbose,
     g_attributes,
+    g_cards,
+    g_cards_name
 )
 from app import app
 
@@ -108,7 +109,7 @@ def move_to_card_line():
                     width={"size": 3, "offset": 1},
                 ),
                 dbc.Col(
-                    dcc.Dropdown(options=[{"label": a, "value": a} for a in g_attributes],
+                    dcc.Dropdown(options=[{"label": a, "value": a} for a in g_cards_name]+[{"label": "Clear", "value": "Clear"}],
                                  id="gm-move-to-card-dropbox-card"),
                     width={"size": 3},
                 ),
@@ -123,6 +124,10 @@ def move_to_card_line():
             ]
         )
     )
+
+
+def cards_line():
+    return dbc.Row(g_cards)
 
 
 def page(name):
@@ -151,7 +156,7 @@ def page(name):
             html.Div(id="gm_tmp", style={"display": "none"}),
             html.Div(id="gm_tmp2", style={"display": "none"}),
             html.Div(id="gm_tmp3", style={"display": "none"}),
-            html.Div(id="gm_tmp3", style={"display": "none"}),
+            html.Div(id="gm_tmp4", style={"display": "none"}),
             dbc.Jumbotron(dbc.Row(html.Div(name + " The Game Master"))),
             html.Div(div_players),
             dbc.Button(
@@ -159,22 +164,7 @@ def page(name):
             ),
             rolling_line(),
             move_to_card_line(),
-            dbc.Card(
-                [
-                    dbc.CardImg(src="/static/images/placeholder286x180.png", top=True),
-                    dbc.CardBody(
-                        [
-                            html.H4("Card title", className="card-title"),
-                            html.P(
-                                "Some quick example text to build on the card title and "
-                                "make up the bulk of the card's content.",
-                                className="card-text",
-                            ),
-                            dbc.Button("Go somewhere", color="primary"),
-                        ]
-                    )
-                ],
-                style={"width": "18rem"})
+            cards_line()
         ]
     )
     return html.Div([navbar, body])
@@ -286,6 +276,44 @@ def gm_roll_callback(button_n, players, attribute, difficulty, sess_id):
 
 # callbacks
 @app.callback(
+    Output("gm_tmp4", "children"),
+    [Input("gm-move-to-card-button", "n_clicks")],
+    [
+        State("gm-move-to-card-checklist-players", "value"),
+        State("gm-move-to-card-dropbox-card", "value"),
+        State("sess_id", "children")
+    ]
+)
+def gm_move_to_card_callback(button_n, players, card, sess_id):
+    ctx = dash.callback_context
+    # If no trigering event raise no update
+    if not ctx.triggered or ctx.triggered[0]["value"] is None or players is None or card is None:
+        raise PreventUpdate
+
+    index = 0
+    if(card == "Clear"):
+        index = -1
+    else:
+        for c in g_cards_name:
+            if c == card:
+                break
+            index = index+1
+
+    for p in g_players_list:
+        if p.name in players:
+            if index == -1:
+                p.cards.clear()
+            else:
+                p.cards.append(g_cards[index])
+            g_sessions[p.sess_id]["update"] = True
+    for gm_id in g_gm_list:
+        g_sessions[gm_id]["update"] = True
+    raise PreventUpdate
+
+
+
+# callbacks
+@app.callback(
     Output({"type": "xp-div", "player": MATCH}, "children"),
     [Input({"type": "xp-button", "player": MATCH}, "n_clicks")]
 )
@@ -301,40 +329,4 @@ def give_xp_callback(button_n):
     g_sessions[p.sess_id]["update"] = True
 
 
-# callbacks
-@app.callback(
-    Output("gm_tmp4", "children"),
-    [
-        Input("gm-move-to-card-button", "n_clicks"),
-    ],
-    [
-        State("gm-move-to-card-checklist-players", "value"),
-        State("gm-move-to-card-dropbox-card", "value"),
-        State("sess_id", "children"),
-    ],
-)
-def gm_move_to_card_callback(button_n, players, attribute, difficulty, sess_id):
-    ctx = dash.callback_context
-    # If no trigering event raise no update
-    if not ctx.triggered or ctx.triggered[0]["value"] is None or players is None or attribute is None or difficulty is None:
-        raise PreventUpdate
 
-    diff_val = {"easy": 10, "medium": 0, "hard": -10}
-    bonus = diff_val[difficulty]
-    for p in g_players_list:
-        if p.name in players:
-            value = p.p_data["attribute"][attribute]
-            target = value + bonus
-            dice = np.random.randint(0, 100)
-            if target >= dice:
-                result = "SUCCESS ✅"
-            else:
-                result = "FAIL ❌"
-            result_out = f"{result} (dice : {dice}, skill : {target} ({value}+{bonus}))"
-            for a in p.roll_outs:
-                p.roll_outs[a].children = result_out if a == attribute else ""
-            g_sessions[p.sess_id]["update"] = True
-            p.result_div.children = "Result: " + result_out
-    for gm_id in g_gm_list:
-        g_sessions[gm_id]["update"] = True
-    raise PreventUpdate
