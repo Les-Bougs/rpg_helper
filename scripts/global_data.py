@@ -28,4 +28,4 @@ g_cards = [dbc.Card([dbc.CardImg(src=g_config["cards"][card_name]["src"], top=Tr
                             html.P(g_config["cards"][card_name]["description"],
                                    className="card-text")
                          ])],
-                    style={"width": "38rem"}) for card_name in g_config["cards"]]
+                    style={"width": "28rem"}) for card_name in g_config["cards"]]

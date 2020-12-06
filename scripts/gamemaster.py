@@ -43,24 +43,17 @@ def disconnect_player(player):
 
 
 def player_line(player):
-    return dbc.Jumbotron(
-        dbc.Row([
-            html.Div(id={"type": "xp-div",
-                         "player": str(player.num)},
-                     style={"display": "none"}),
-            dbc.Col(
-                [html.H1(player.name, className="display-3")],
-                width={"size": 3, "offset": 1},
-            ),
-            dbc.Col([dbc.Row([player.btn_div])], width={"size": 3}),
-            dbc.Col([dbc.Row([player.result_div])], width={"size": 3}),
-            dbc.Col([dbc.Row([dbc.Button("Give XP",
-                                         id={"type": "xp-button",
-                                             "player": str(player.num)},
-                                         className="mr-1")])],
-                    width={"size": 1})
-        ]
-        ))
+    return dbc.Card(
+        dbc.CardBody([html.Div(id={"type": "xp-div",
+                                   "player": str(player.num)},
+                               style={"display": "none"}),
+                      html.H1(player.name),
+                      player.btn_div,
+                      player.result_div,
+                      dbc.Button("Give XP",
+                                 id={"type": "xp-button",
+                                     "player": str(player.num)})
+                      ]), style={"width": "16rem"})
 
 
 def rolling_line():
@@ -160,7 +153,7 @@ def page(name):
             html.Div(id="gm_tmp2", style={"display": "none"}),
             html.Div(id="gm_tmp3", style={"display": "none"}),
             html.Div(id="gm_tmp4", style={"display": "none"}),
-            html.Div(div_players),
+            dbc.Row(div_players),
             rolling_line(),
             move_to_card_line(),
             cards_line()

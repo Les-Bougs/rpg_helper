@@ -39,7 +39,7 @@ class Player:
     def create_gm_interface(self):
         self.is_rolling = False
         self.result = -1
-        self.attribute_tested = html.H1("hoy")
+        self.attribute_tested = html.H3("hoy")
         self.result_div = html.Div("Result: ")
         self.btn_div = html.Div(
             [
@@ -277,12 +277,14 @@ def roll_skill(n_inc, sess_id):
     ctx = dash.callback_context
     if not ctx.triggered or ctx.triggered[0]["value"] is None:
         raise PreventUpdate
+
     trigger_obj = json.loads(ctx.triggered[0]["prop_id"].split(".")[0])
     attr = trigger_obj["name"]
     p_num = g_sessions[sess_id]["p_num"]
     p = g_players_list[p_num]
 
-    p.attribute_tested.children = attr
+    # makes the player difficutly test button visible in the GM layout
+    p.attribute_tested.children = attr + " test: "
     p.btn_div.style = None
     if g_verbose:
         print(
@@ -321,11 +323,11 @@ def roll_skill(n_inc, sess_id):
             + result
             + ")"
         )
-    result_out = f"{result} (dice : {dice}, skill : {target} ({value}+{bonus}))"
+    result_out = f"{result}\t\t(dice : {dice}, skill : {target} ({value}+{bonus}))"
     for a in p.roll_outs:
         p.roll_outs[a].children = result_out if a == attr else ""
 
-    p.result_div.children = "Result: " + result_out
+    p.result_div.children = attr + " test: " + result_out
     g_sessions[sess_id]["update"] = True
     for gm_id in g_gm_list:
         g_sessions[gm_id]["update"] = True
