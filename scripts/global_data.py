@@ -25,7 +25,9 @@ g_cards = [dbc.Card([dbc.CardImg(src=g_config["cards"][card_name]["src"], top=Tr
                      dbc.CardBody(
                          [
                             html.H4(card_name, className="card-title"),
-                            html.P(g_config["cards"][card_name]["description"],
-                                   className="card-text")
+                            html.P(g_config["cards"][card_name]["description"], className="card-text"),
+                            html.P("", className="card-text")
                          ])],
                     style={"width": "28rem"}) for card_name in g_config["cards"]]
+g_objects = g_config["objects"]
+g_objects_array = [{"label": name, "value": name} for name in g_objects]

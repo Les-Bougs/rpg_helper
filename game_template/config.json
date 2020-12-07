@@ -5,13 +5,15 @@
 	"stamina",
 	"charisma",
 	"inteligence",
-	"wisdom"
+	"wisdom",
+	"agility"
     ],
     "races": [
 	"orc",
 	"dwarf",
 	"elf",
-	"humain"
+	"humain",
+	"gobelin"
     ],
     "races_affinity": {
 	"orc":{
@@ -45,13 +47,24 @@
 	    "charisma":[50,2],
 	    "inteligence":[50,2],
 	    "wisdom":[50,2]
+	},
+	"Gobelin":{
+	    "strength":[50,2],
+	    "dexterity":[50,2],
+	    "stamina":[50,2],
+	    "charisma":[50,2],
+	    "inteligence":[50,2],
+	    "wisdom":[50,2]
 	}
     },
     "classes": [
 	"hunter",
 	"bard",
 	"witch",
-	"warrior"
+	"warrior",
+	"thief",
+	"Shaman",
+	"Engineer"
     ],
     "ressources" : [
 	"hp",
@@ -63,8 +76,30 @@
 		 "description":"blabla"},
 	"desert":{"src":"https://upload.wikimedia.org/wikipedia/commons/2/20/Serran%C3%ADa_de_Hornocal_08.jpg",
 		  "description":"blabla"},
-	"swampt":{"src":"https://upload.wikimedia.org/wikipedia/commons/0/03/Arnhem_Nederrijn_ochtend_apr04.jpg",
+	"swamp":{"src":"https://upload.wikimedia.org/wikipedia/commons/0/03/Arnhem_Nederrijn_ochtend_apr04.jpg",
 		  "description":"blabla"}
-    }
+    },
+    "objects": {"Health Potion": {"description":"Recovers 500 HP", "price": "20G"},
+		"Grand Potion": {"description": "Recovers 1000 HP", "price": "80G"},
+		"Ultimate Potion": {"description": "Recovers 2000 HP", "price": "200G"},
+		"Health Elixir": {"description": "Recovers all HP", "price": "---"},
+		"Magic Tonic": {"description": "Recovers 50 MP",  "price": "50G"},
+		"Grand Tonic": {"description": "Recovers 100 MP", "price": "120G"},
+		"Ultimate Tonic": {"description": "Recovers 200 MP", "price": "300G"},
+		"Magic Elixir": {"description": "Recovers all MP",  "price": "---"},
+		"Ancient Elixir": {"description": "Recovers 50% HP and MP", "price": "3000G"},
+		"True Elixir": {"description": "Recovers all HP and MP, heals any status effects",  "price": "---"},
+		"Holy Elixir": {"description": "Recovers all HP of all allies",  "price": "---"},
+		"Revive": {"description": "Brings a defeated ally back to life", "price": "50G"},
+		"Nectar": {"description": "Brings a defeated ally back to life with full HP", "price": "---"},
+		"Antidote": {"description": "Heals poison", "price": "10G"},
+		"Paralyze Heal": {"description": "Heals paralysis", "price": "10G"},
+		"Eye Drops": {"description": "Heals blindness", "price": "10G"},
+		"Stimulant": {"description": "Heals sleep", "price": "10G"},
+		"Smelling Salts": {"description": "Heals confusion", "price": "10G"},
+		"Seal Destroyer": {"description": "Heals sealing (silence)", "price": "10G"},
+		"Heal": {"description": "Heals all status effects", "price": "80G"}
+	       }
+
 	
 }

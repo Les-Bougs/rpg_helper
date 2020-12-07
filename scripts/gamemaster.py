@@ -16,7 +16,9 @@ from global_data import (
     g_verbose,
     g_attributes,
     g_cards,
-    g_cards_name
+    g_cards_name,
+    g_objects,
+    g_objects_array
 )
 from app import app
 
@@ -50,6 +52,9 @@ def player_line(player):
                       html.Div(id={"type": "ress-div",
                                    "player": str(player.num)},
                                style={"display": "none"}),
+                      html.Div(id={"type": "inventory-div",
+                                   "player": str(player.num)},
+                               style={"display": "none"}),
                       html.H1(player.name),
                       player.btn_div,
                       player.result_div,
@@ -57,9 +62,15 @@ def player_line(player):
                       dbc.Button("Set ressources",
                                  id={"type": "ress-button", "player": str(player.num)},
                                  block=True),
+                      html.Div(player.attribute_badges),
                       dbc.Button("Give XP",
                                  id={"type": "xp-button", "player": str(player.num)},
                                  block=True),
+                      dcc.Dropdown(
+                          options=g_objects_array,
+                          multi=True,
+                          id={"type": "inventory-dropdown", "player": str(player.num)}
+                      )
                       ]), style={"width": "16rem"})
 
 
@@ -79,8 +90,8 @@ def rolling_line():
         dbc.Row(
             [
                 dbc.Col(
-                    dcc.Checklist(options=players_dropdown,
-                                  id="gm-roll-checklist-players"),
+                    dbc.Checklist(options=players_dropdown,
+                                  id="gm-roll-checklist-players", inline=True),
                     width={"size": 3, "offset": 1},
                 ),
                 dbc.Col(
@@ -91,7 +102,7 @@ def rolling_line():
                 dbc.Col(
                     dcc.Dropdown(
                         options=[
-                            {"label": p, "value": p} for p in ["easy", "medium", "hard"]
+                            {"label": p, "value": p} for p in ["easy", "mkay", "hard", "nope"]
                         ],
                         id="gm-roll-dropbox-difficulty"
                     ),
@@ -114,11 +125,9 @@ def move_to_card_line():
     return dbc.Jumbotron(
         dbc.Row(
             [
-                dbc.Col(
-                    dcc.Checklist(options=players_dropdown,
-                                  id="gm-move-to-card-checklist-players"),
-                    width={"size": 3, "offset": 1},
-                ),
+                dbc.Col(dbc.Checklist(options=players_dropdown,
+                                      id="gm-move-to-card-checklist-players", inline=True),
+                        width={"size": 3, "offset": 1}),
                 dbc.Col(
                     dcc.Dropdown(options=[{"label": a, "value": a} for a in g_cards_name]+[{"label": "Clear", "value": "Clear"}],
                                  id="gm-move-to-card-dropbox-card"),
@@ -219,22 +228,16 @@ def save_callback(button_n, sess_id):
 def p_btn_callback(button_n, sess_id):
     ctx = dash.callback_context
 
-    ## If no trigering event raise no update
-    if not ctx.triggered or ctx.triggered[0]["value"] == None:
+    # If no trigering event raise no update
+    if not ctx.triggered or ctx.triggered[0]["value"] is None:
         raise PreventUpdate
 
     trigering_id = json.loads(ctx.triggered[0]["prop_id"].split(".")[0])
-    ## Stuff during the game context
+    # Stuff during the game context
     bt = trigering_id["name"]
     p_num = g_sessions[trigering_id["player"]]["p_num"]
-    bonus = 0
-    if bt == "easy":
-        bonus = 10
-    elif bt == "medium":
-        bonus = 0
-    else:
-        bonus = -10
-    g_players_list[p_num].bonus = bonus
+    roll_dice(g_players_list[p_num], g_players_list[p_num].testing_attribute, bt)
+
     g_players_list[p_num].is_rolling = False
     g_players_list[p_num].btn_div.style = {"display": "none"}
 
@@ -263,25 +266,36 @@ def gm_roll_callback(button_n, players, attribute, difficulty, sess_id):
     if not ctx.triggered or ctx.triggered[0]["value"] is None or players is None or attribute is None or difficulty is None:
         raise PreventUpdate
 
-    diff_val = {"easy": 10, "medium": 0, "hard": -10}
-    bonus = diff_val[difficulty]
     for p in g_players_list:
         if p.name in players:
-            value = p.p_data["attribute"][attribute]
-            target = value + bonus
-            dice = np.random.randint(0, 100)
-            if target >= dice:
-                result = "SUCCESS ✅"
-            else:
-                result = "FAIL ❌"
-            result_out = f"{result} (dice : {dice}, skill : {target} ({value}+{bonus}))"
-            for a in p.roll_outs:
-                p.roll_outs[a].children = result_out if a == attribute else ""
-            g_sessions[p.sess_id]["update"] = True
-            p.result_div.children = "Result: " + result_out
+            roll_dice(p, attribute, difficulty)
+    raise PreventUpdate
+
+
+def roll_dice(p, attr, diff):
+    x = p.p_data["attribute"][attr]
+    if diff == "easy":
+        a, b = 0.3, 65
+    elif diff == "mkay":
+        a, b = 0.6, 20
+    elif diff == "hard":
+        a, b = 0.4, 10
+    elif diff == "nope":
+        a, b = 0.25, 5
+    target = a*x + b
+    dice = np.random.randint(0, 100)
+    if target >= dice:
+        result = "SUCCESS ✅"
+    else:
+        result = "FAIL ❌"
+    result_out = f"{result}({dice}:{target})"
+    for a in p.roll_outs:
+        p.roll_outs[a].children = result_out if a == attr else ""
+
+    p.result_div.children = attr + " test: " + result_out
+    g_sessions[p.sess_id]["update"] = True
     for gm_id in g_gm_list:
         g_sessions[gm_id]["update"] = True
-    raise PreventUpdate
 
 
 # callbacks
@@ -315,7 +329,14 @@ def gm_move_to_card_callback(button_n, players, card, sess_id):
                 p.cards.clear()
             else:
                 p.cards.append(g_cards[index])
-            g_sessions[p.sess_id]["update"] = True
+    for card in g_cards:
+        card.children[1].children[2].children = ""
+
+    for p in g_players_list:
+        for card in p.cards:
+            card.children[1].children[2].children += p.name + " (" + p.raceName + "|" + p.className + ")     "
+    for p in g_players_list:
+        g_sessions[p.sess_id]["update"] = True
     for gm_id in g_gm_list:
         g_sessions[gm_id]["update"] = True
     raise PreventUpdate
@@ -333,6 +354,7 @@ def give_xp_callback(button_n):
     trigger_obj = json.loads(ctx.triggered[0]["prop_id"].split(".")[0])
     p_num = trigger_obj["player"]
     p = g_players_list[int(p_num)]
+    p.xp_to_use += 5
     for a in p.skill_bar_obj:
         p.skill_bar_obj[a]["button_inc"].disabled = False
     g_sessions[p.sess_id]["update"] = True
@@ -350,7 +372,6 @@ def set_ressources_callback(button_n, value):
     ctx = dash.callback_context
     if not ctx.triggered or ctx.triggered[0]["value"] is None:
         raise PreventUpdate
-    print(value)
     trigger_obj = json.loads(ctx.triggered[0]["prop_id"].split(".")[0])
     p_num = trigger_obj["player"]
     p = g_players_list[int(p_num)]
@@ -365,4 +386,23 @@ def set_ressources_callback(button_n, value):
         p.ressource_div.children += "| " + f"{ress} : {value} "
     p.ressource_div.children += "|"
 
+    g_sessions[p.sess_id]["update"] = True
+
+
+# callbacks
+@app.callback(
+    Output({"type": "inventory-div", "player": MATCH}, "children"),
+    [Input({"type": "inventory-dropdown", "player": MATCH}, "value")]
+)
+def inventory_callback(value):
+    print("hey")
+    ctx = dash.callback_context
+    if not ctx.triggered or ctx.triggered[0]["value"] is None:
+        raise PreventUpdate
+    trigger_obj = json.loads(ctx.triggered[0]["prop_id"].split(".")[0])
+    p_num = trigger_obj["player"]
+    p = g_players_list[int(p_num)]
+    p.inventory.children.clear()
+    for obj in value:
+        p.inventory.children.append(dbc.Badge(obj, color="primary", className="mr-1"))
     g_sessions[p.sess_id]["update"] = True

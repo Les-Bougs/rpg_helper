@@ -37,43 +37,59 @@ class Player:
         self.cards = []
         self.create_layout()
         self.create_gm_interface()
+        self.xp_to_use = 0
+        self.inventory = html.Div([dbc.Badge("none", color="primary", className="mr-1")])
+        self.attribute_badges = [dbc.Badge(attr + ": " + str(value), color="primary", className="mr-1") for attr, value in self.p_data["attribute"].items()]
 
     def create_gm_interface(self):
         self.is_rolling = False
         self.result = -1
         self.attribute_tested = html.H3("hoy")
         self.result_div = html.Div("Result: ")
-        self.btn_div = html.Div(
-            [
-                self.attribute_tested,
-                dbc.Button(
+        self.btn_div = html.Div([
+            dbc.Row(dbc.Col(self.attribute_tested)),
+            dbc.Row([
+                dbc.Col(dbc.Button(
                     "easy",
                     id={
                         "type": "difficulty-button",
                         "player": self.sess_id,
                         "name": "easy",
                     },
-                    className="mr-1",
-                ),
-                dbc.Button(
-                    "medium",
+                    color="success",
+                    size="sm",
+                ), width={"size": 3, "offset": 0}),
+                dbc.Col(dbc.Button(
+                    "mkay",
                     id={
                         "type": "difficulty-button",
                         "player": self.sess_id,
-                        "name": "medium",
+                        "name": "mkay",
                     },
-                    className="mr-1",
-                ),
-                dbc.Button(
+                    color="warning",
+                    size="sm",
+                ), width={"size": 3, "offset": 0}),
+                dbc.Col(dbc.Button(
                     "hard",
                     id={
                         "type": "difficulty-button",
                         "player": self.sess_id,
                         "name": "hard",
                     },
-                    className="mr-1",
-                ),
-            ],
+                    color="danger",
+                    size="sm",
+                ), width={"size": 3, "offset": 0}),
+                dbc.Col(dbc.Button(
+                    "nope",
+                    id={
+                        "type": "difficulty-button",
+                        "player": self.sess_id,
+                        "name": "nope",
+                    },
+                    color="dark",
+                    size="sm",
+                ), width={"size": 3, "offset": 0})
+            ])],
             style={"display": "none"},
         )
 
@@ -123,6 +139,9 @@ class Player:
         return dbc.Col([dbc.Row(html.H1(self.name)),
                         dbc.Row(html.H3(self.raceName + " " + self.className)),
                         html.Div(self.skill_dash),
+                        dbc.Row(html.H3("Inventory")),
+                        self.inventory,
+                        dbc.Row(html.H3("Cards")),
                         dbc.Row(self.cards)])
 
     def create_creation_div(self):
@@ -256,8 +275,19 @@ def update_bar_value(n_inc, sess_id):
     value = p.p_data["attribute"][attr]
     p.skill_bar_obj[attr]["progress_bar"].value = value
     p.skill_bar_obj[attr]["progress_bar"].children = str(value)
-    p.skill_bar_obj[attr]["button_inc"].disabled = True
+
+    index = 0
+    for attr, value in p.p_data["attribute"].items():
+        p.attribute_badges[index].children = attr + ": " + str(value)
+        index += 1
+
+    p.xp_to_use -= 1
+    if p.xp_to_use <= 0:
+        for a in p.skill_bar_obj:
+            p.skill_bar_obj[a]["button_inc"].disabled = True
     g_sessions[sess_id]["update"] = True
+    for gm_id in g_gm_list:
+        g_sessions[gm_id]["update"] = True
     return value
 
 
@@ -278,6 +308,7 @@ def roll_skill(n_inc, sess_id):
     p = g_players_list[p_num]
 
     # makes the player difficutly test button visible in the GM layout
+    p.testing_attribute = attr
     p.attribute_tested.children = attr + " test: "
     p.btn_div.style = None
     if g_verbose:
@@ -299,32 +330,7 @@ def roll_skill(n_inc, sess_id):
     g_sessions[sess_id]["update"] = True
     while p.is_rolling is True:
         time.sleep(1)
-    bonus = p.bonus
-    value = p.p_data["attribute"][attr]
-    target = value + bonus
-    dice = np.random.randint(0, 100)
-    if target >= dice:
-        result = "SUCCESS ✅"
-    else:
-        result = "FAIL ❌"
-    if g_verbose:
-        print(
-            "["
-            + sess_id[:8]
-            + "-"
-            + g_sessions[sess_id]["name"]
-            + "] Rolled ("
-            + result
-            + ")"
-        )
-    result_out = f"{result}\t\t(dice : {dice}, skill : {target} ({value}+{bonus}))"
-    for a in p.roll_outs:
-        p.roll_outs[a].children = result_out if a == attr else ""
 
-    p.result_div.children = attr + " test: " + result_out
-    g_sessions[sess_id]["update"] = True
-    for gm_id in g_gm_list:
-        g_sessions[gm_id]["update"] = True
     return [""] * len(ctx.outputs_list)
 
 
