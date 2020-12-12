@@ -1,5 +1,4 @@
 import json
-import numpy as np
 import time
 
 import dash
@@ -21,6 +20,10 @@ from global_data import (
     g_attributes,
     g_races_affinity,
     g_verbose,
+    g_cards,
+    g_cards_name,
+    g_objects,
+    g_diff
 )
 import gamemaster
 from app import app
@@ -37,9 +40,11 @@ class Player:
         self.cards = []
         self.create_layout()
         self.create_gm_interface()
-        self.xp_to_use = 0
+        self.xp_to_use = 0  # Keep the name of the items for the mg GUI
         self.inventory = html.Div([dbc.Badge("none", color="primary", className="mr-1")])
         self.attribute_badges = [dbc.Badge(attr + ": " + str(value), color="primary", className="mr-1") for attr, value in self.p_data["attribute"].items()]
+        self.bonus = dict([(attr, 0) for attr in self.p_data["attribute"]])
+
 
     def create_gm_interface(self):
         self.is_rolling = False
@@ -136,8 +141,17 @@ class Player:
         self.skill_dash = []
         for skill, value in self.p_data["attribute"].items():
             self.skill_dash.append(self.skill_bar(skill, value))
-        return dbc.Col([dbc.Row(html.H1(self.name)),
-                        dbc.Row(html.H3(self.raceName + " " + self.className)),
+        self.update_inventory(self.p_data["inventory"].copy())
+        return dbc.Col([dbc.Row([dbc.Col([dbc.Row(html.H1(self.name)),
+                                          dbc.Row(html.H3(self.raceName + " " + self.className)),
+                                          dbc.Row(html.P(g_cards_name[self.name]["description"])),
+                                          dbc.Row(html.H5("Story:")),
+                                          dbc.Row(html.P(self.p_data["story"])),
+                                          dbc.Row(html.H5("Objective:")),
+                                          dbc.Row(html.P(self.p_data["objective"])),
+        ]),
+                                 dbc.Col(dbc.Card(dbc.CardImg(src=g_cards_name[self.name]["src"], top=True),
+                                                  style={"width": "14rem"}))]),
                         html.Div(self.skill_dash),
                         dbc.Row(html.H3("Inventory")),
                         self.inventory,
@@ -228,6 +242,15 @@ class Player:
                                                              id={"type": "d-button-inc", "name": f"{skill}"},
                                                              className="d-button",
                                                              disabled=True)
+        self.skill_bar_obj[skill]["button_roll"] = dbc.Button(f"{skill} roll",
+                                                              id={
+                                                                  "type": "rolling-button",
+                                                                  "player": str(self.num),
+                                                                  "name": f"{skill}",
+                                                              },
+                                                              className="d-button")
+        self.skill_bar_obj[skill]["badge_roll_easy"] = dbc.Badge(str(0.3*value+65)+"%", color="success", className="mr-1")
+        self.skill_bar_obj[skill]["badge_roll_hard"] = dbc.Badge(str(0.4*value+10)+"%", color="danger", className="mr-1")
         return html.Div(
             [
                 dbc.Row(dbc.Col(html.Div(skill))),
@@ -241,20 +264,47 @@ class Player:
                         self.skill_bar_obj[skill]["button_dec"],
                         self.skill_bar_obj[skill]["button_inc"],
                         dbc.Col(self.roll_outs[skill]),
-                        dbc.Button(
-                            f"{skill} roll",
-                            id={
-                                "type": "rolling-button",
-                                "player": str(self.num),
-                                "name": f"{skill}",
-                            },
-                            className="d-button",
-                        ),
+                        self.skill_bar_obj[skill]["button_roll"],
+                        dbc.Col([dbc.Row(self.skill_bar_obj[skill]["badge_roll_easy"]),
+                                 dbc.Row(self.skill_bar_obj[skill]["badge_roll_hard"])])
                     ],
                     align="center",
                 ),
             ]
         )
+
+    def update_attribute_bar(self):
+        index = 0
+        for attr, value in self.p_data["attribute"].items():
+            b = self.bonus[attr]
+            s = str(value) + (("+" + str(b)) if b != 0 else "")
+            self.skill_bar_obj[attr]["progress_bar"].children = s
+            self.skill_bar_obj[attr]["progress_bar"].value = value
+            easy_c = g_diff['easy']['a']*(value+b)+g_diff['easy']['b']
+            hard_c = g_diff['hard']['a']*(value+b)+g_diff['hard']['b']
+            self.attribute_badges[index].children = attr + ": " + s + " -- " + str(int(easy_c))+" | "+str(int(hard_c))
+            self.skill_bar_obj[attr]["badge_roll_easy"].children = str(easy_c)+"%"
+            self.skill_bar_obj[attr]["badge_roll_hard"].children = str(hard_c)+"%"
+            index += 1
+
+    def update_inventory(self, value):
+        self.inventory.children.clear()
+        self.p_data["inventory"].clear()
+        for obj in value:
+            self.inventory.children.append(dbc.Card([dbc.CardHeader(obj + "(" + str(g_objects[obj]["price"]) + "po)"),
+                                                     dbc.CardBody(html.P(g_objects[obj]["description"] +
+                                                                         (" (" +
+                                                                          (" / ".join("{}\t{}".format(b["attribute"], b["value"])
+                                                                                      for b in g_objects[obj]["bonus"])) +
+                                                                          ")" if len(g_objects[obj]["bonus"]) > 0 else ""), className="card-text"))],
+                                                    color="light"))
+            self.p_data["inventory"].append(obj)
+            # add potential bonus
+            if len(g_objects[obj]["bonus"]) > 0:
+                for bonus in g_objects[obj]["bonus"]:
+                    self.bonus[bonus["attribute"]] += bonus["value"]
+            self.update_attribute_bar()
+            g_sessions[self.sess_id]["update"] = True
 
 
 # INCREASE/DECREASE BAR
@@ -272,14 +322,8 @@ def update_bar_value(n_inc, sess_id):
     p_num = g_sessions[sess_id]["p_num"]
     p = g_players_list[p_num]
     p.p_data["attribute"][attr] += 1
-    value = p.p_data["attribute"][attr]
-    p.skill_bar_obj[attr]["progress_bar"].value = value
-    p.skill_bar_obj[attr]["progress_bar"].children = str(value)
 
-    index = 0
-    for attr, value in p.p_data["attribute"].items():
-        p.attribute_badges[index].children = attr + ": " + str(value)
-        index += 1
+    p.update_attribute_bar()
 
     p.xp_to_use -= 1
     if p.xp_to_use <= 0:
@@ -288,7 +332,7 @@ def update_bar_value(n_inc, sess_id):
     g_sessions[sess_id]["update"] = True
     for gm_id in g_gm_list:
         g_sessions[gm_id]["update"] = True
-    return value
+    raise PreventUpdate
 
 
 # ROLL
@@ -327,10 +371,17 @@ def roll_skill(n_inc, sess_id):
         g_sessions[gm_id]["update"] = True
     p.is_rolling = True
     p.roll_outs[attr].children = dbc.Spinner(color="primary")
+    # Disable any other roll
+    for s in p.skill_bar_obj:
+        p.skill_bar_obj[s]["button_roll"].disabled = True
     g_sessions[sess_id]["update"] = True
     while p.is_rolling is True:
         time.sleep(1)
 
+    # Renable any other roll
+    for s in p.skill_bar_obj:
+        p.skill_bar_obj[s]["button_roll"].disabled = False
+    g_sessions[sess_id]["update"] = True
     return [""] * len(ctx.outputs_list)
 
 
@@ -344,7 +395,7 @@ def roll_skill(n_inc, sess_id):
 )
 def creation_callback(n_buttons, v_states, sess_id):
     ctx = dash.callback_context
-    if not ctx.triggered or ctx.triggered[0]["value"] == None:
+    if not ctx.triggered or ctx.triggered[0]["value"] is None:
         raise PreventUpdate
     trigger = json.loads(ctx.triggered[0]["prop_id"].split(".")[0])
     p_num = g_sessions[sess_id]["p_num"]

@@ -28,6 +28,11 @@ g_cards = [dbc.Card([dbc.CardImg(src=g_config["cards"][card_name]["src"], top=Tr
                             html.P(g_config["cards"][card_name]["description"], className="card-text"),
                             html.P("", className="card-text")
                          ])],
-                    style={"width": "28rem"}) for card_name in g_config["cards"]]
+                    style={"width": "18rem"}) for card_name in g_config["cards"]]
 g_objects = g_config["objects"]
 g_objects_array = [{"label": name, "value": name} for name in g_objects]
+
+g_diff = {'easy': {'a': 0.30, 'b': 65},
+          'mkay': {'a': 0.60, 'b': 20},
+          'hard': {'a': 0.40, 'b': 10},
+          'nope': {'a': 0.25, 'b': 5}}
