@@ -28,13 +28,22 @@ g_cards_name = g_config["cards"]
 g_cards = [dbc.Card([dbc.CardImg(src=app.get_asset_url(g_config["cards"][card_name]["src"]), top=True),
                      dbc.CardBody(
                          [
-                            html.H4(card_name, className="card-title"),
-                            html.P(g_config["cards"][card_name]["description"], className="card-text"),
-                            html.P("", className="card-text")
+                             html.H4(card_name, className="card-title"),
+                             html.P(g_config["cards"][card_name]["description"], className="card-text"),
+                             html.P("", className="card-text"),
+                             dbc.Button("go",
+                                        id={"type": "card-button",
+                                            "card_name": card_name},
+                                        className="d-button"),
+                             html.Div(id={"type": "card-div_tmp",
+                                          "card_name": card_name},
+                                      style={"display": "none"})
                          ])],
                     style={"width": "18rem"}) for card_name in g_config["cards"]]
 g_objects = g_config["objects"]
 g_objects_array = [{"label": name, "value": name} for name in g_objects]
+
+g_dict_player_channel = {}
 
 g_diff = {'easy': {'a': 0.30, 'b': 65},
           'mkay': {'a': 0.60, 'b': 20},

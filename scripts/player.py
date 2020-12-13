@@ -20,7 +20,10 @@ from global_data import (
     g_cards_name,
     g_objects,
     g_diff,
-    g_cards
+    g_cards,
+    discord_move_p,
+    g_dict_player_channel,
+    g_card_channels
 )
 import gamemaster
 from app import app
@@ -41,8 +44,8 @@ class Player:
         for c in g_cards_name:
             if c in data['cards']:
                 index.append(i)
-            if "channel" in g_cards_name[c].keys():
-                self.channel = g_cards_name[c]["channel"]
+                if "channel" in g_cards_name[c].keys():
+                    self.channel = g_cards_name[c]["channel"]
             i += 1
         for i in index:
             self.cards.append(g_cards[i])
@@ -153,8 +156,14 @@ class Player:
                                           dbc.Row(html.P(self.p_data["story"])),
                                           dbc.Row(html.H5("Objective:")),
                                           dbc.Row(html.P(self.p_data["objective"]))]),
-                                 dbc.Col(dbc.Card(dbc.CardImg(src=g_cards_name[self.name]["src"], top=True),
-                                                  style={"width": "14rem"}))]),
+                                 dbc.Col(dbc.Card(dbc.CardImg(src=app.get_asset_url(g_cards_name[self.name]["src"]), top=True),
+                                                  style={"width": "14rem"})),
+                                 dbc.Row(dbc.Button("Private room",
+                                                    id={"type": "private-button",
+                                                        "player": str(self.num)},
+                                                    className="d-button")),
+                                 html.Div(id={"type": "player-div-private-tmp",
+                                              "player": str(self.num)}, style={"display": "none"})]),
                         html.Div(self.skill_dash),
                         dbc.Row(html.H3("Inventory")),
                         self.inventory,
@@ -424,3 +433,45 @@ def quit_callback(n_buttons, sess_id):
     if not ctx.triggered or ctx.triggered[0]["value"] is None:
         raise PreventUpdate
     gamemaster.disconnect_player(g_players_list[g_sessions[sess_id]["p_num"]])
+
+
+@app.callback(
+    Output({"type": "card-div_tmp", "card_name": MATCH}, "children"),
+    [Input({"type": "card-button", "card_name": MATCH}, "n_clicks")],
+    [State("sess_id", "children")],
+)
+def card_button_callback(n_buttons, sess_id):
+    ctx = dash.callback_context
+    if not ctx.triggered or ctx.triggered[0]["value"] is None:
+        raise PreventUpdate
+    trigger_obj = json.loads(ctx.triggered[0]["prop_id"].split(".")[0])
+    p_num = g_sessions[sess_id]["p_num"]
+    p = g_players_list[p_num]
+    c_num = g_cards_name[trigger_obj["card_name"]]["channel"]
+    print(p_num)
+    print(c_num)
+    g_card_channels[g_dict_player_channel[p.name]].style = {"display": "none"}
+    for gm_id in g_gm_list:
+        g_sessions[gm_id]["update"] = True
+    discord_move_p(str(p_num), str(c_num))
+
+
+@app.callback(
+    Output({"type": "player-div-private-tmp", "player": MATCH}, "children"),
+    [Input({"type": "private-button", "player": MATCH}, "n_clicks")],
+    [State("sess_id", "children")],
+)
+def private_button_callback(n_buttons, sess_id):
+    ctx = dash.callback_context
+    if not ctx.triggered or ctx.triggered[0]["value"] is None:
+        raise PreventUpdate
+    p_num = g_sessions[sess_id]["p_num"]
+    p = g_players_list[p_num]
+    c_num = g_dict_player_channel[p.name]
+    print(p_num)
+    print(c_num)
+    p.channel = c_num
+    g_card_channels[p.channel].style = None
+    for gm_id in g_gm_list:
+        g_sessions[gm_id]["update"] = True
+    discord_move_p(str(p_num), str(c_num))

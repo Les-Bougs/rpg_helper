@@ -14,7 +14,7 @@ from flask import request
 from app import app
 import index
 import gamemaster
-from global_data import g_players_list, g_sessions, g_verbose, g_socket_param, g_cards_name, g_card_channels, discord_create_c, discord_connect
+from global_data import g_players_list, g_sessions, g_verbose, g_socket_param, g_cards_name, g_card_channels, discord_create_c, discord_connect, g_dict_player_channel, g_data
 
 
 def server_layout():
@@ -92,8 +92,8 @@ def update_content(sess_id, interval):
                 g_cards_name[c]['channel'] = index_c
                 discord_create_c(str(index_c))
                 g_card_channels.append(dbc.Card([html.Div(id={"type": "channel-div",
-                                                              "channel_num": str(index_c)
-                                                              }, style={"display": "none"}),
+                                                              "channel_num": str(index_c)},
+                                                          style={"display": "none"}),
                                                  dbc.CardHeader(c),
                                                  dbc.CardBody(html.P("")),
                                                  dbc.Button("join", id={"type": "channel-button",
@@ -101,6 +101,18 @@ def update_content(sess_id, interval):
                                                             className="d-button")], style={"display": "none"}))
                 index_c += 1
         print("[Discord BOT] Created " + str(index_c) + " new channels")
+        for c in g_data:
+            discord_create_c(str(index_c))
+            g_dict_player_channel[c] = index_c
+            g_card_channels.append(dbc.Card([html.Div(id={"type": "channel-div",
+                                                          "channel_num": str(index_c)},
+                                                      style={"display": "none"}),
+                                             dbc.CardHeader(c),
+                                             dbc.CardBody(html.P("")),
+                                             dbc.Button("join", id={"type": "channel-button",
+                                                                    "channel_num": str(index_c)},
+                                                        className="d-button")], color="info", style={"display": "none"}))
+            index_c += 1
 
     layout = None
     # Test if the page need to be updated
