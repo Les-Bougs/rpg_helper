@@ -14,7 +14,7 @@ from flask import request
 from app import app
 import index
 import gamemaster
-from global_data import g_players_list, g_sessions, g_verbose, g_socket_param, g_socket, g_cards_name, g_card_channels
+from global_data import g_players_list, g_sessions, g_verbose, g_socket_param, g_cards_name, g_card_channels, discord_create_c, discord_connect
 
 
 def server_layout():
@@ -85,13 +85,12 @@ def update_content(sess_id, interval):
 
     if g_socket_param["connected"] is not True:
         g_socket_param["connected"] = True
-        g_socket.connect((g_socket_param["host"], g_socket_param["port"]))
-        g_socket.sendall(bytearray(('N:').ljust(50, 'x'), 'latin-1'))
+        discord_connect()
         index_c = 0
         for c in g_cards_name:
             if g_cards_name[c]['type'] == "place":
                 g_cards_name[c]['channel'] = index_c
-                g_socket.sendall(bytearray(('C:'+str(index_c)+':').ljust(50, 'x'), 'latin-1'))
+                discord_create_c(str(index_c))
                 g_card_channels.append(dbc.Card([html.Div(id={"type": "channel-div",
                                                               "channel_num": str(index_c)
                                                               }, style={"display": "none"}),
@@ -99,9 +98,9 @@ def update_content(sess_id, interval):
                                                  dbc.CardBody(html.P("")),
                                                  dbc.Button("join", id={"type": "channel-button",
                                                                         "channel_num": str(index_c)},
-                                                            className="d-button")]))
+                                                            className="d-button")], style={"display": "none"}))
                 index_c += 1
-                print("sent" + str(index_c))
+        print("[Discord BOT] Created " + str(index_c) + " new channels")
 
     layout = None
     # Test if the page need to be updated
@@ -139,4 +138,4 @@ def update_content(sess_id, interval):
 
 
 if __name__ == "__main__":
-    app.run_server(debug=True, host="0.0.0.0", port=80)
+    app.run_server(debug=True, host="0.0.0.0", port=8050)

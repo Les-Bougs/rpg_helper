@@ -3,6 +3,9 @@ import dash_bootstrap_components as dbc
 import dash_html_components as html
 import socket
 
+
+from app import app
+
 g_verbose = True
 data_file = open("../game_template/players.json")
 g_data = json.load(data_file)
@@ -22,7 +25,7 @@ g_races = g_config["races"]
 g_races_affinity = g_config["races_affinity"]
 
 g_cards_name = g_config["cards"]
-g_cards = [dbc.Card([dbc.CardImg(src=g_config["cards"][card_name]["src"], top=True),
+g_cards = [dbc.Card([dbc.CardImg(src=app.get_asset_url(g_config["cards"][card_name]["src"]), top=True),
                      dbc.CardBody(
                          [
                             html.H4(card_name, className="card-title"),
@@ -49,3 +52,32 @@ g_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 
 g_card_channels = []
+
+
+def discord_connect():
+    try:
+        g_socket.connect((g_socket_param["host"], g_socket_param["port"]))
+        g_socket.sendall(bytearray(('N:').ljust(50, 'x'), 'latin-1'))
+    except Exception:
+        print("[Discord BOT] Communication error")
+
+
+def discord_setup_p(p_num, p_name):
+    try:
+        g_socket.sendall(bytearray(('S:'+p_num+':'+p_name+':').ljust(50, 'x'), 'latin-1'))
+    except Exception:
+        pass
+
+
+def discord_move_p(p_num, c_num):
+    try:
+        g_socket.sendall(bytearray(('M:'+p_num+':'+c_num+':').ljust(50, 'x'), 'latin-1'))
+    except Exception:
+        pass
+
+
+def discord_create_c(c_num):
+    try:
+        g_socket.sendall(bytearray(('C:'+c_num+':').ljust(50, 'x'), 'latin-1'))
+    except Exception:
+        pass

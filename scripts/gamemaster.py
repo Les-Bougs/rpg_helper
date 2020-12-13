@@ -19,8 +19,9 @@ from global_data import (
     g_cards_name,
     g_objects_array,
     g_diff,
-    g_socket,
-    g_card_channels
+    g_card_channels,
+    discord_move_p,
+    discord_setup_p
 )
 from app import app
 
@@ -205,10 +206,11 @@ page_layout = html.Div(page("none"))
 def add_player_to_GM(p):
     players_dropdown.append({"label": p.name, "value": p.name})
     div_players.append(player_line(p))
-    g_socket.sendall(bytearray(('S:'+str(p.num)+':'+p.name+':').ljust(50, 'x'), 'latin-1'))
+    discord_setup_p(str(p.num), p.name)
     if p.channel != -1:
-        g_socket.sendall(bytearray(('M:'+str(p.num)+':'+str(p.channel)+':').ljust(50, 'x'), 'latin-1'))
+        discord_move_p(str(p.num), str(p.channel))
         g_card_channels[p.channel].children[2].children.children += p.name + " (" + p.raceName + "|" + p.className + ")  "
+        g_card_channels[p.channel].style = None
 
 
 # callbacks
@@ -379,12 +381,12 @@ def gm_move_to_card_callback(button_n, players, cards, sess_id):
             else:
                 if is_new_place:  # if new place remove everything
                     p.cards.clear()
-                    p.data["cards"].clear()
+                    p.p_data["cards"].clear()
                 ind = 0
                 for i in index:
-                    if g_cards[i] not in p.cards:
+                    if g_cards[i] not in p.cards and g_cards[i].children[1].children[0].children != p.name:
                         p.cards.append(g_cards[i])
-                        p.data["cards"].append(cards[ind])
+                        p.p_data["cards"].append(cards[ind])
                         ind += 1
 
     for card in g_cards:
@@ -392,6 +394,7 @@ def gm_move_to_card_callback(button_n, players, cards, sess_id):
 
     for c in g_card_channels:
         c.children[2].children.children = ""
+        c.style = {"display": "none"}
 
     for p in g_players_list:
         for card in p.cards:
@@ -399,7 +402,8 @@ def gm_move_to_card_callback(button_n, players, cards, sess_id):
                 card.children[1].children[2].children += p.name + " (" + p.raceName + "|" + p.className + ")     "
                 if p.channel != g_cards_name[card.children[1].children[0].children]["channel"]:
                     p.channel = g_cards_name[card.children[1].children[0].children]["channel"]
-                    g_socket.sendall(bytearray(('M:'+str(p.num)+':'+str(p.channel)+':').ljust(50, 'x'), 'latin-1'))
+                    discord_move_p(str(p.num), str(p.channel))
+                g_card_channels[p.channel].style = None
                 g_card_channels[p.channel].children[2].children.children += p.name + " (" + p.raceName + "|" + p.className + ")  "
     for p in g_players_list:
         g_sessions[p.sess_id]["update"] = True
@@ -488,5 +492,5 @@ def channel_card(n_inc):
     trigger_obj = json.loads(ctx.triggered[0]["prop_id"].split(".")[0])
     c_num = trigger_obj["channel_num"]
     print(c_num)
-    g_socket.sendall(bytearray(('M:'+str(-1)+':'+c_num+':').ljust(50, 'x'), 'latin-1'))
+    discord_move_p("-1", c_num)
     raise PreventUpdate
