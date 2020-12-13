@@ -6,3 +6,4 @@ requests==2.23.0
 numpy>=1.18.4
 flask_caching
 dash_core_components
+discord
