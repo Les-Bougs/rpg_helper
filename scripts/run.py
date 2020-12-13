@@ -5,6 +5,7 @@ from dash.exceptions import PreventUpdate
 from dash.dependencies import Input, Output
 import dash_core_components as dcc
 import dash_html_components as html
+import dash_bootstrap_components as dbc
 
 import uuid
 import datetime
@@ -13,7 +14,7 @@ from flask import request
 from app import app
 import index
 import gamemaster
-from global_data import g_players_list, g_sessions, g_verbose
+from global_data import g_players_list, g_sessions, g_verbose, g_socket_param, g_socket, g_cards_name, g_card_channels
 
 
 def server_layout():
@@ -22,19 +23,19 @@ def server_layout():
     sess_ip = request.environ.get("HTTP_X_REAL_IP",
                                   request.remote_addr)  # Get IP of the client
 
-    # Check if the ip already tried to connect less than 2sec ago
-    # or is remembered
+    # # Check if the ip already tried to connect less than 2sec ago
+    # # or is remembered
     exist = False
-    dt = datetime.datetime.now() - datetime.timedelta(seconds=2)
-    for sess in g_sessions:
-        if g_sessions[sess]["IP_add"] == sess_ip and (
-            g_sessions[sess]["time_stamp"] > dt or
-                g_sessions[sess]["rem"] is True
-        ):
-            sess_id = sess  # Give previous id
-            exist = True  # Set exist to show a previous user was found
-            g_sessions[sess_id]["update"] = True
-            break
+    # dt = datetime.datetime.now() - datetime.timedelta(seconds=2)
+    # for sess in g_sessions:
+    #     if g_sessions[sess]["IP_add"] == sess_ip and (
+    #         g_sessions[sess]["time_stamp"] > dt or
+    #             g_sessions[sess]["rem"] is True
+    #     ):
+    #         sess_id = sess  # Give previous id
+    #         exist = True  # Set exist to show a previous user was found
+    #         g_sessions[sess_id]["update"] = True
+    #         break
 
     if exist is False:  # If not an already existing user try to connect
         if g_verbose:
@@ -81,6 +82,26 @@ def update_content(sess_id, interval):
     ''' This function is periodically called by the user's page
         to reload its content. To do so the function check the session context
         and return matching layout. '''
+
+    if g_socket_param["connected"] is not True:
+        g_socket_param["connected"] = True
+        g_socket.connect((g_socket_param["host"], g_socket_param["port"]))
+        g_socket.sendall(bytearray(('N:').ljust(50, 'x'), 'latin-1'))
+        index_c = 0
+        for c in g_cards_name:
+            if g_cards_name[c]['type'] == "place":
+                g_cards_name[c]['channel'] = index_c
+                g_socket.sendall(bytearray(('C:'+str(index_c)+':').ljust(50, 'x'), 'latin-1'))
+                g_card_channels.append(dbc.Card([html.Div(id={"type": "channel-div",
+                                                              "channel_num": str(index_c)
+                                                              }, style={"display": "none"}),
+                                                 dbc.CardHeader(c),
+                                                 dbc.CardBody(html.P("")),
+                                                 dbc.Button("join", id={"type": "channel-button",
+                                                                        "channel_num": str(index_c)},
+                                                            className="d-button")]))
+                index_c += 1
+                print("sent" + str(index_c))
 
     layout = None
     # Test if the page need to be updated

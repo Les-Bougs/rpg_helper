@@ -1,6 +1,7 @@
 import json
 import dash_bootstrap_components as dbc
 import dash_html_components as html
+import socket
 
 g_verbose = True
 data_file = open("../game_template/players.json")
@@ -36,3 +37,15 @@ g_diff = {'easy': {'a': 0.30, 'b': 65},
           'mkay': {'a': 0.60, 'b': 20},
           'hard': {'a': 0.40, 'b': 10},
           'nope': {'a': 0.25, 'b': 5}}
+
+
+g_guild = []
+
+g_socket_param = {"host": '127.0.0.1',  # The server's hostname or IP address
+                  "port": 65000,
+                  "connected": False}        # The port used by the server
+
+g_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+
+g_card_channels = []

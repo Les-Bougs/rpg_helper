@@ -17,9 +17,10 @@ from global_data import (
     g_attributes,
     g_cards,
     g_cards_name,
-    g_objects,
     g_objects_array,
-    g_diff
+    g_diff,
+    g_socket,
+    g_card_channels
 )
 from app import app
 
@@ -189,6 +190,7 @@ def page(name):
             html.Div(id="gm_tmp4", style={"display": "none"}),
             html.Div(id="gm_tmp5", style={"display": "none"}),
             dbc.Row(div_players),
+            dbc.Row(g_card_channels),
             rolling_line(),
             move_to_card_line(),
             cards_line()
@@ -203,6 +205,10 @@ page_layout = html.Div(page("none"))
 def add_player_to_GM(p):
     players_dropdown.append({"label": p.name, "value": p.name})
     div_players.append(player_line(p))
+    g_socket.sendall(bytearray(('S:'+str(p.num)+':'+p.name+':').ljust(50, 'x'), 'latin-1'))
+    if p.channel != -1:
+        g_socket.sendall(bytearray(('M:'+str(p.num)+':'+str(p.channel)+':').ljust(50, 'x'), 'latin-1'))
+        g_card_channels[p.channel].children[2].children.children += p.name + " (" + p.raceName + "|" + p.className + ")  "
 
 
 # callbacks
@@ -215,8 +221,8 @@ def add_player_to_GM(p):
 )
 def save_callback(button_n, sess_id):
     ctx = dash.callback_context
-    ## If no trigering event raise no update
-    if not ctx.triggered or ctx.triggered[0]["value"] == None:
+    # If no trigering event raise no update
+    if not ctx.triggered or ctx.triggered[0]["value"] is None:
         raise PreventUpdate
     if g_verbose:
         print("[" + sess_id[:8] + "-" + g_sessions[sess_id]["name"] + "] Save game")
@@ -355,12 +361,15 @@ def gm_move_to_card_callback(button_n, players, cards, sess_id):
 
     index = []
     i = 0
+    is_new_place = False
     if(cards[0] == "Clear"):
         index.append(-1)
     else:
         for c in g_cards_name:
             if c in cards:
                 index.append(i)
+                if g_cards_name[c]["type"] == "place":
+                    is_new_place = True
             i += 1
 
     for p in g_players_list:
@@ -368,16 +377,30 @@ def gm_move_to_card_callback(button_n, players, cards, sess_id):
             if index[0] == -1:
                 p.cards.clear()
             else:
+                if is_new_place:  # if new place remove everything
+                    p.cards.clear()
+                    p.data["cards"].clear()
+                ind = 0
                 for i in index:
-                    print(i)
                     if g_cards[i] not in p.cards:
                         p.cards.append(g_cards[i])
+                        p.data["cards"].append(cards[ind])
+                        ind += 1
+
     for card in g_cards:
         card.children[1].children[2].children = ""
 
+    for c in g_card_channels:
+        c.children[2].children.children = ""
+
     for p in g_players_list:
         for card in p.cards:
-            card.children[1].children[2].children += p.name + " (" + p.raceName + "|" + p.className + ")     "
+            if g_cards_name[card.children[1].children[0].children]["type"] == "place":
+                card.children[1].children[2].children += p.name + " (" + p.raceName + "|" + p.className + ")     "
+                if p.channel != g_cards_name[card.children[1].children[0].children]["channel"]:
+                    p.channel = g_cards_name[card.children[1].children[0].children]["channel"]
+                    g_socket.sendall(bytearray(('M:'+str(p.num)+':'+str(p.channel)+':').ljust(50, 'x'), 'latin-1'))
+                g_card_channels[p.channel].children[2].children.children += p.name + " (" + p.raceName + "|" + p.className + ")  "
     for p in g_players_list:
         g_sessions[p.sess_id]["update"] = True
     for gm_id in g_gm_list:
@@ -451,3 +474,19 @@ def inventory_callback(value):
 
     p.update_inventory(value)
     g_sessions[p.sess_id]["update"] = True
+
+
+@app.callback(
+    Output({"type": "channel-div", "channel_num": MATCH}, "children"),
+    [Input({"type": "channel-button", "channel_num": MATCH}, "n_clicks")]
+)
+def channel_card(n_inc):
+    ctx = dash.callback_context
+    if not ctx.triggered or ctx.triggered[0]["value"] is None:
+        raise PreventUpdate
+
+    trigger_obj = json.loads(ctx.triggered[0]["prop_id"].split(".")[0])
+    c_num = trigger_obj["channel_num"]
+    print(c_num)
+    g_socket.sendall(bytearray(('M:'+str(-1)+':'+c_num+':').ljust(50, 'x'), 'latin-1'))
+    raise PreventUpdate

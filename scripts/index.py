@@ -8,7 +8,7 @@ import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
 from dash.dependencies import Input, Output, State, MATCH, ALL
 
-from global_data import g_data, g_players_list, g_sessions, g_gm_list
+from global_data import g_data, g_players_list, g_sessions, g_gm_list, g_socket
 from app import app
 
 import player
@@ -223,6 +223,7 @@ def index_callback(button_n, sess_id, input_v):
                     if is_gm:
                         data["context"] = "gm"
                         gamemaster.page_layout.children = gamemaster.page(pseudo)
+                        g_socket.sendall(bytearray(('S:'+str(-1)+':'+pseudo+':').ljust(50, 'x'), 'latin-1'))
                         if (sess_id in g_gm_list) is False:
                             g_gm_list.append(sess_id)
                     else:  # If player

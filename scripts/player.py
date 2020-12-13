@@ -10,20 +10,17 @@ from dash.exceptions import PreventUpdate
 
 
 from global_data import (
-    g_data,
     g_sessions,
     g_players_list,
     g_gm_list,
-    g_ressources,
     g_races,
     g_classes,
-    g_attributes,
     g_races_affinity,
     g_verbose,
-    g_cards,
     g_cards_name,
     g_objects,
-    g_diff
+    g_diff,
+    g_cards
 )
 import gamemaster
 from app import app
@@ -37,14 +34,24 @@ class Player:
         self.raceName = self.p_data["race"]
         self.className = self.p_data["class"]
         self.num = data["session_num"]
+        self.channel = -1
         self.cards = []
+        index = []
+        i = 0
+        for c in g_cards_name:
+            if c in data['cards']:
+                index.append(i)
+            if "channel" in g_cards_name[c].keys():
+                self.channel = g_cards_name[c]["channel"]
+            i += 1
+        for i in index:
+            self.cards.append(g_cards[i])
         self.create_layout()
         self.create_gm_interface()
         self.xp_to_use = 0  # Keep the name of the items for the mg GUI
-        self.inventory = html.Div([dbc.Badge("none", color="primary", className="mr-1")])
+        self.inventory = dbc.Row([dbc.Badge("none", color="primary", className="mr-1")])
         self.attribute_badges = [dbc.Badge(attr + ": " + str(value), color="primary", className="mr-1") for attr, value in self.p_data["attribute"].items()]
         self.bonus = dict([(attr, 0) for attr in self.p_data["attribute"]])
-
 
     def create_gm_interface(self):
         self.is_rolling = False
@@ -115,20 +122,17 @@ class Player:
             children=[
                 html.Div(id="player-div-tmp", style={"display": "none"},),
                 html.Div(
-                    id={"type": "rolling-div", "player": str(self.num), "name": "tmp",},
+                    id={"type": "rolling-div", "player": str(self.num), "name": "tmp"},
                     style={"display": "none"},
                 ),
                 dbc.Col(ressource_bar),
-                dbc.NavItem(dbc.NavLink("Link", href="#")),
+                dbc.NavItem(dbc.NavLink("Link", href="https://github.com/Les-Bougs/rpg_helper")),
                 dbc.DropdownMenu(
                     nav=True,
                     in_navbar=True,
                     label="Menu",
                     children=[
-                        dbc.DropdownMenuItem("Entry 1"),
-                        dbc.DropdownMenuItem("Entry 2"),
-                        dbc.DropdownMenuItem(divider=True),
-                        dbc.DropdownMenuItem("Quit", id="quit-button"),
+                        dbc.DropdownMenuItem("Quit", id="quit-button")
                     ],
                 ),
             ],
@@ -148,8 +152,7 @@ class Player:
                                           dbc.Row(html.H5("Story:")),
                                           dbc.Row(html.P(self.p_data["story"])),
                                           dbc.Row(html.H5("Objective:")),
-                                          dbc.Row(html.P(self.p_data["objective"])),
-        ]),
+                                          dbc.Row(html.P(self.p_data["objective"]))]),
                                  dbc.Col(dbc.Card(dbc.CardImg(src=g_cards_name[self.name]["src"], top=True),
                                                   style={"width": "14rem"}))]),
                         html.Div(self.skill_dash),
@@ -397,7 +400,7 @@ def creation_callback(n_buttons, v_states, sess_id):
     ctx = dash.callback_context
     if not ctx.triggered or ctx.triggered[0]["value"] is None:
         raise PreventUpdate
-    trigger = json.loads(ctx.triggered[0]["prop_id"].split(".")[0])
+    # trigger = json.loads(ctx.triggered[0]["prop_id"].split(".")[0])
     p_num = g_sessions[sess_id]["p_num"]
     p = g_players_list[p_num]
     for state in ctx.states_list[0]:
@@ -414,10 +417,10 @@ def creation_callback(n_buttons, v_states, sess_id):
 @app.callback(
     Output("player-div-tmp", "children"),
     [Input("quit-button", "n_clicks")],
-    [State("sess_id", "children"),],
+    [State("sess_id", "children")],
 )
-def creation_callback(n_buttons, sess_id):
+def quit_callback(n_buttons, sess_id):
     ctx = dash.callback_context
-    if not ctx.triggered or ctx.triggered[0]["value"] == None:
+    if not ctx.triggered or ctx.triggered[0]["value"] is None:
         raise PreventUpdate
     gamemaster.disconnect_player(g_players_list[g_sessions[sess_id]["p_num"]])
