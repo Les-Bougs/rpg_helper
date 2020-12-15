@@ -83,7 +83,7 @@
 			    "description":"Une elfe blonde qui dégage une forte arrogance. Elle semble sûr d'elle dans tous ses gestes et décisions. Un profil de leader ou de Loner", "type":"player"},
 	       "Fouillepoche":{"src":"fouillepoche.jpg",
 			       "description":"Il faut se concentrer pour le décrire tant ce goblin est furtif. Nous vous invitons à veiller à vos effets personnels.", "type":"player"},
-	       "Daynes Omayne":{"src":"daynes.jpg",
+	       "Dayness":{"src":"daynes.jpg",
 				"description":"Vieux monsieur inquietant et odorant.", "type":"player"},
 	       "shire":{"src":"shire.jpg",
 			"description":"Une prairie verdoyante et lumineuse.", "type":"place"},

@@ -113,7 +113,7 @@
 	  "story":"Axel est un orc de la tribu de la forêt de l'ouest. Il a grandi entourer des chasseurs et ne vit que pour la chasse. Ayant manqué l'opportunité de tué un cerf céleste, sa tribu la rejeté et depuis il reste à la recherche de la créature à rapporter en trophée à sa tribu et être de nouveau un des leur. Au fil du temps il a continué de s'entrainé et s'est spécialisé pour devenir un chasseur de prime très connu. Il a récemment été mandaté pour trouver et capturer vivante la princesse elfe du royaume du nord. Personne ne sait où elle ne se trouve ni à quoi elle ressemble. Axel par donc à la recherche d'information pour trouver et capturer cette princesse. Cependant il a commencé à entendre parler d'une rumeur sur un dragon céleste, peut-être une opportunité de se racheter au près des sien ? ",
 	  "objective":"Trouver information princesse elfe, capturer princesse/ tuer dragon ou autres créatures mythiques",
 	  "cards":["swamp"]},
- "Daynes Omayne": {"password": "pierrebaby",
+ "Dayness": {"password": "pierrebaby",
 		   "gm": "no",
 		   "session_num": 0,
 		   "race": "Humain",
