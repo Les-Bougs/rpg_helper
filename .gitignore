@@ -1,2 +1,5 @@
 scripts/__pycache__
+scripts/__pycache__/*
 scripts/cache-directory
+scripts/cache-directory/*
+game_template/players.json

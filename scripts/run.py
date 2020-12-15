@@ -10,6 +10,7 @@ import dash_bootstrap_components as dbc
 import uuid
 import datetime
 from flask import request
+import sys
 
 from app import app
 import index
@@ -149,5 +150,6 @@ def update_content(sess_id, interval):
         raise PreventUpdate
 
 
+DASH_PORT=int(sys.argv[1])
 if __name__ == "__main__":
-    app.run_server(debug=True, host="0.0.0.0", port=8050)
+    app.run_server(debug=True, host="0.0.0.0", port=DASH_PORT)
