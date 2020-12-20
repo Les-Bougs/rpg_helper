@@ -37,6 +37,7 @@ class Player:
         self.raceName = self.p_data["race"]
         self.className = self.p_data["class"]
         self.num = data["session_num"]
+        self.img_src = data["img_src"]
         self.channel = -1
         self.cards = []
         index = []
@@ -156,7 +157,7 @@ class Player:
                                           dbc.Row(html.P(self.p_data["story"])),
                                           dbc.Row(html.H5("Objective:")),
                                           dbc.Row(html.P(self.p_data["objective"]))]),
-                                 dbc.Col(dbc.Card(dbc.CardImg(src=app.get_asset_url(g_cards_name[self.name]["src"]), top=True),
+                                 dbc.Col(dbc.Card(dbc.CardImg(src=app.get_asset_url(self.img_src), top=True),
                                                   style={"width": "14rem"})),
                                  dbc.Row(dbc.Button("Private room",
                                                     id={"type": "private-button",

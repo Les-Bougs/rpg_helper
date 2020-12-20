@@ -15,7 +15,17 @@ import sys
 from app import app
 import index
 import gamemaster
-from global_data import g_players_list, g_sessions, g_verbose, g_socket_param, g_cards_name, g_card_channels, discord_create_c, discord_connect, g_dict_player_channel, g_data
+from global_data import (
+    g_players_list,
+    g_sessions,
+    g_verbose,
+    g_socket_param,
+    g_cards_name,
+    g_card_channels,
+    discord_create_c,
+    discord_connect,
+    g_dict_player_channel,
+    g_data)
 
 
 def server_layout():
@@ -150,6 +160,6 @@ def update_content(sess_id, interval):
         raise PreventUpdate
 
 
-DASH_PORT=int(sys.argv[1])
+DASH_PORT = int(sys.argv[1])
 if __name__ == "__main__":
     app.run_server(debug=True, host="0.0.0.0", port=DASH_PORT)
