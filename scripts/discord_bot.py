@@ -22,7 +22,7 @@ class MyClient(discord.Client):
         self.test_id = 0
         self.attr = [[str(i), a[:3], a] for i, a in enumerate(g_attributes)]
         self.p_bonus = {}
-        # self.setup_dash_com()
+        self.setup_dash_com()
 
     def setup_dash_com(self):
         self.HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
