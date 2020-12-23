@@ -1,5 +1,4 @@
 '''main file'''
-
 # Dash library to create simple webpage
 from dash.exceptions import PreventUpdate
 from dash.dependencies import Input, Output

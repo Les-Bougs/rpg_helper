@@ -90,3 +90,10 @@ def discord_create_c(c_num):
         g_socket.sendall(bytearray(('C:'+c_num+':').ljust(50, 'x'), 'latin-1'))
     except Exception:
         pass
+
+
+def discord_bonus_p(p_num, attr, val):
+    try:
+        g_socket.sendall(bytearray(('B:'+p_num+':'+attr+':'+val+':').ljust(50, 'x'), 'latin-1'))
+    except Exception:
+        pass

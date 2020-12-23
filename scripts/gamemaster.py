@@ -194,7 +194,7 @@ def page(name):
             dbc.Row(g_card_channels),
             rolling_line(),
             move_to_card_line(),
-            cards_line()
+            # cards_line()
         ]
     )
     return html.Div([navbar, body])

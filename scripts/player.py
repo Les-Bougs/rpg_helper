@@ -22,6 +22,7 @@ from global_data import (
     g_diff,
     g_cards,
     discord_move_p,
+    discord_bonus_p,
     g_dict_player_channel,
     g_card_channels
 )
@@ -313,9 +314,11 @@ class Player:
                                                     color="light"))
             self.p_data["inventory"].append(obj)
             # add potential bonus
+            discord_bonus_p(str(self.num), "c", "0")
             if len(g_objects[obj]["bonus"]) > 0:
                 for bonus in g_objects[obj]["bonus"]:
                     self.bonus[bonus["attribute"]] += bonus["value"]
+                    discord_bonus_p(str(self.num), bonus["attribute"], str(bonus["value"]))
             self.update_attribute_bar()
             g_sessions[self.sess_id]["update"] = True
 
